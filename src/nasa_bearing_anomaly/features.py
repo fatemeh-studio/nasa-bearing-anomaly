@@ -1,6 +1,4 @@
 """
-features.py
------------
 Physics-based feature extraction for bearing health monitoring.
 
 Two levels of features:
@@ -78,8 +76,10 @@ class FeatureExtractor:
 
     def kurtosis(self, x: np.ndarray) -> float:
         """
-        Excess kurtosis (Fisher), so Gaussian noise reads 0 and a healthy bearing
-        reads near it. Measured healthy median on Test 3, Bearing 3: 0.15.
+        Excess kurtosis (Fisher), so Gaussian noise reads 0.
+
+        A healthy bearing reads near it: measured healthy median on Test 3,
+        Bearing 3 is 0.15.
 
         Early fault: ~2. Severe fault: above ~7. These are the usual published
         thresholds (3, 5, 10) minus 3, because this value already subtracts the
@@ -97,6 +97,21 @@ class FeatureExtractor:
         return float(np.mean((x - mu) ** 4) / sigma**4 - 3.0)
 
     def skewness(self, x: np.ndarray) -> float:
+        """
+        Third standardised moment: asymmetry of the amplitude distribution.
+
+        Returns 0.0 for a constant signal rather than dividing by zero.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Raw 1-D waveform.
+
+        Returns
+        -------
+        float
+            Skewness of ``x``.
+        """
         mu = np.mean(x)
         sigma = np.std(x)
         if sigma < 1e-12:
@@ -106,7 +121,10 @@ class FeatureExtractor:
     def crest_factor(self, x: np.ndarray) -> float:
         """
         Crest Factor = Peak / RMS.
-        Sensitive to early-stage single-point defects.
+
+        Sensitive to early-stage single-point defects. Its direction becomes
+        unreliable at high fault severity, once damage spreads and the signal
+        stops being impulsive, so it is read alongside kurtosis rather than alone.
         """
         r = self.rms(x)
         return self.peak(x) / r if r > 1e-12 else 0.0
@@ -150,10 +168,21 @@ class FeatureExtractor:
 
     def welch_psd(self, x: np.ndarray):
         """
-        Welch Power Spectral Density estimate.
-        More stable than raw FFT for noisy industrial signals.
+        Welch power spectral density (PSD) estimate.
 
-        Returns (frequencies, psd)
+        More stable than a raw fast Fourier transform (FFT) for noisy industrial
+        signals, because averaging over overlapping segments trades frequency
+        resolution for reduced variance.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Raw 1-D waveform.
+
+        Returns
+        -------
+        tuple of (numpy.ndarray, numpy.ndarray)
+            Frequencies in Hz, and the power spectral density at each.
         """
         freqs, psd = signal.welch(
             x,
@@ -166,7 +195,8 @@ class FeatureExtractor:
 
     def spectral_entropy(self, psd: np.ndarray) -> float:
         """
-        Normalized spectral entropy.
+        Compute normalized spectral entropy of a power spectral density.
+
         High entropy → flat/broadband spectrum (Gaussian noise, healthy baseline).
         Low entropy  → energy concentrated at defect frequency harmonics (fault).
 
@@ -188,7 +218,10 @@ class FeatureExtractor:
     ) -> float:
         """
         Compute energy around a defect frequency and its harmonics.
-        This is the key physics insight: fault energy concentrates at BPFO/BPFI/BSF.
+
+        This is the key physics insight: fault energy concentrates at BPFO/BPFI/BSF
+        rather than spreading, because a localised defect is struck at a rate fixed
+        by geometry and shaft speed.
         """
         total_energy = 0.0
         for harmonic in range(1, self.n_harmonics + 1):
@@ -201,8 +234,11 @@ class FeatureExtractor:
         self, freqs: np.ndarray, psd: np.ndarray, cutoff_hz: float = 5000.0
     ) -> float:
         """
-        Ratio of energy above cutoff to total energy.
-        Rising high-frequency content is an early fault indicator.
+        Compute the ratio of energy above a cutoff to total energy.
+
+        Counterintuitive direction, and verified: healthy Gaussian noise is
+        already high-frequency-rich, so this does not simply rise with damage.
+        Read it against the defect-frequency band energy, not on its own.
         """
         total = np.sum(psd)
         high = np.sum(psd[freqs >= cutoff_hz])
@@ -228,8 +264,10 @@ class FeatureExtractor:
 
     def extract_from_raw(self, x: np.ndarray, channel_name: str = "ch") -> dict:
         """
-        Full feature extraction from a raw 1D waveform.
-        Combines time-domain and frequency-domain features.
+        Extract every feature from a raw 1-D waveform.
+
+        Combines the time-domain and frequency-domain sets, prefixing each key
+        with ``channel_name`` so channels stay distinguishable once merged.
         """
         td = {f"{channel_name}_{k}": v for k, v in self.extract_time_domain(x).items()}
         fd = {f"{channel_name}_{k}": v for k, v in self.extract_frequency_domain(x).items()}
@@ -271,7 +309,9 @@ def add_rolling_features(
 def add_change_rate_features(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     """
     Add first-order difference (rate of change) features.
-    Sudden jumps in RMS or kurtosis are early warning signals.
+
+    Sudden jumps in RMS or kurtosis are early warning signals, and a difference
+    column exposes them to a detector that otherwise only sees levels.
     """
     df = df.copy()
     for col in columns:
@@ -283,8 +323,22 @@ def add_change_rate_features(df: pd.DataFrame, columns: list) -> pd.DataFrame:
 
 def enrich_processed(test_id: int) -> pd.DataFrame:
     """
-    Load a processed CSV and add rolling + change-rate features.
-    Saves enriched version as test{N}_features.csv
+    Load a processed CSV and add rolling and change-rate features.
+
+    Writes the enriched table to ``data/processed/test{N}_features.csv``. That
+    file is gitignored, so it is absent from a fresh clone until this runs --
+    which is why ``detection.resolve_feature_table`` names the source it used
+    instead of silently taking whichever table happens to exist.
+
+    Parameters
+    ----------
+    test_id : int
+        1, 2 or 3.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The enriched table.
     """
     df = load_processed(test_id)
 

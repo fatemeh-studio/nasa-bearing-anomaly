@@ -68,13 +68,14 @@ target-version = "py311"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-# "D" is deliberately absent from this list for now. It lands in the same commit
-# as the numpydoc conversion -- 41 findings, measured 2026-08-12 -- bringing back
-# with it ignore entries D203/D213, [tool.ruff.lint.pydocstyle] convention =
-# "numpy", and per-file-ignores of "D" for tests/ and notebooks/. Selecting a
-# rule before doing the work it demands leaves the check permanently red, and a
-# check that is always red is one nobody reads.
-select = ["E", "F", "I", "UP", "B", "SIM", "PD", "N"]
+# "D" landed together with the numpydoc conversion, which is the only honest way
+# to adopt it: selecting a rule before doing the work it demands leaves the check
+# permanently red, and a check that is always red is one nobody reads.
+#
+# The raw count without a convention set is misleading -- 95 findings in src/, of
+# which 55 are rules the numpy convention itself disables. Against
+# convention = "numpy" below it was 40, matching the 41 measured 2026-08-12.
+select = ["E", "F", "I", "UP", "B", "SIM", "PD", "N", "D"]
 
 ignore = [
     "E501",
@@ -86,7 +87,25 @@ ignore = [
     # Bearing Analysis. Lowercasing either set would break the correspondence
     # with the sources the code is checkable against.
     "N806",
+    # D203/D213 are each half of a pair whose other half the numpy convention
+    # selects; ruff warns and ignores one of each pair anyway. Naming them keeps
+    # the warning out of every run.
+    "D203",
+    "D213",
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+# A test's name is its documentation -- test_two_file_tail_is_fully_removed says
+# more than a docstring restating it would, and requiring one on all 90 would add
+# noise without adding information. Docstrings are still written where a test
+# pins something non-obvious; this only stops them being mandatory.
+"tests/*" = ["D"]
+# Notebook cells are prose-and-code; the markdown cell above a function is its
+# documentation.
+"notebooks/*" = ["D"]
 
 [tool.basedpyright]
 include = ["src", "tests"]

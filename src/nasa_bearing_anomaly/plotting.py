@@ -1,6 +1,4 @@
 """
-plotting.py
------------
 All visualization utilities for the NASA Bearing Anomaly Detection project.
 
 Plots produced:
@@ -88,8 +86,10 @@ class BearingPlotter:
 
     def plot_rms_overview(self, df: pd.DataFrame) -> plt.Figure:
         """
-        Show RMS trend for all 4 bearings over the entire test duration.
-        Clearly shows which bearing starts to degrade.
+        Show the RMS trend for all four bearings over the whole run.
+
+        One panel per bearing, shared x-axis, so the reader can see which bearing
+        departs from baseline and when.
         """
         bearings = ["Bearing1", "Bearing2", "Bearing3", "Bearing4"]
         rms_cols = {b: f"{b}_ch1_rms" for b in bearings}
@@ -135,8 +135,12 @@ class BearingPlotter:
 
     def plot_anomaly_overlay(self, df: pd.DataFrame, target_bearing: str = None) -> plt.Figure:
         """
-        Plot RMS of target bearing with anomaly regions highlighted in red.
-        This is the key money shot for the portfolio.
+        Plot RMS of the target bearing with flagged files highlighted.
+
+        Defaults to the ``failed_bearing`` of the test under analysis. Note the
+        markers show the raw per-file ``is_anomaly`` flag, not the sustained
+        alarm that ``business.py`` derives -- the two differ, and the sustained
+        rule is the one a lead time may be read from.
         """
         if target_bearing is None:
             target_bearing = TEST_CONFIG[self.test_id]["failed_bearing"]
@@ -277,8 +281,11 @@ class BearingPlotter:
 
     def plot_pca_feature_space(self, df: pd.DataFrame, feature_cols: list) -> plt.Figure:
         """
-        2D PCA projection of feature space, colored by anomaly score.
-        Shows visually how anomalies separate from the healthy cluster.
+        Project the feature space to 2D with PCA, coloured by anomaly score.
+
+        Shows how far the flagged points sit from the healthy cluster. Two
+        components typically capture only part of the variance, so separation
+        here is indicative rather than the basis of any claim.
         """
         X = df[feature_cols].fillna(0).to_numpy()
         X_scaled = StandardScaler().fit_transform(X)
@@ -359,8 +366,9 @@ class BearingPlotter:
 
     def plot_summary_dashboard(self, df: pd.DataFrame, feature_cols: list = None) -> plt.Figure:
         """
-        Single-figure portfolio dashboard combining 4 key panels.
-        Best image to include in a README or presentation.
+        Combine the four key panels into a single-figure dashboard.
+
+        The centrepiece figure for the README and the site.
         """
         config = TEST_CONFIG[self.test_id]
         target = config["failed_bearing"]
@@ -533,7 +541,12 @@ class BearingPlotter:
 
 def plot_all_tests(results: dict):
     """
-    results: {test_id: df_result}
+    Generate and save every figure for each scored test.
+
+    Parameters
+    ----------
+    results : dict
+        Mapping of ``test_id`` to its scored DataFrame.
     """
     for test_id, df in results.items():
         print(f"\n📊 Plotting Test {test_id}...")

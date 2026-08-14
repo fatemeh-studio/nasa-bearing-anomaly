@@ -1,8 +1,7 @@
 """
-loading.py
-----------
-Reads the NASA IMS raw acquisition files and collapses each one to a row of
-per-channel summary statistics.
+Read the NASA IMS raw acquisition files into per-channel summary statistics.
+
+Each raw file collapses to a single row of summary statistics per channel.
 
 A single test run is tens of thousands of waveforms; keeping every sample in
 memory is not practical and is not what the degradation trend needs. Each file
@@ -33,6 +32,7 @@ except ImportError:
     # tqdm ships in the [notebook] extra. Without it the load runs silently
     # rather than failing.
     def tqdm(iterable, **kwargs):  # noqa: F811 — silent fallback
+        """Return the iterable unchanged when tqdm is not installed."""
         return iterable
 
 
@@ -42,9 +42,19 @@ except ImportError:
 def load_single_file(filepath: Path) -> np.ndarray:
     """
     Load a single NASA acquisition file.
+
     Files are space-separated text despite carrying no extension.
 
-    Returns ndarray of shape (n_samples, n_channels).
+    Parameters
+    ----------
+    filepath : pathlib.Path
+        Path to one acquisition file.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of shape ``(n_samples, n_channels)``. A single-channel file is
+        reshaped to two dimensions so callers can index channels uniformly.
     """
     data = np.loadtxt(filepath)
     if data.ndim == 1:

@@ -1,8 +1,8 @@
 """
-config.py
----------
-Frozen constants for the NASA IMS bearing project: filesystem roots, test-run
-configuration, acquisition parameters, and the rig's bearing geometry.
+Frozen constants: filesystem roots, test-run configuration, rig geometry.
+
+Covers the acquisition parameters and the bearing geometry of the NASA IMS test
+rig alongside the per-test configuration.
 
 Nothing here is computed from data and nothing here has a default that another
 module may override. A magic number anywhere else in the package is a bug.

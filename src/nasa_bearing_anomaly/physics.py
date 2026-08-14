@@ -1,6 +1,4 @@
 """
-physics.py
-----------
 Bearing defect-frequency kinematics.
 
 A rolling-element bearing with a localised defect produces an impulse every time
