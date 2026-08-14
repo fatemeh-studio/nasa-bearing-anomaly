@@ -65,6 +65,13 @@ results/reports/*_results.csv
 # portfolio content, and it dates far faster than the code does.
 /plan/
 
+# The decision log is working material too: it records what was chosen, what was
+# rejected and why, in the terms the work was argued in. Naming it here is safe --
+# unlike the agent-rules files, the name discloses nothing about the tooling, and
+# a rule at repo root is what stops an untracked file at repo root being added by
+# a stray `git add .`.
+/DECISIONS.md
+
 # -----------------------------------------------------------------------------
 #  Rendered site
 # -----------------------------------------------------------------------------
