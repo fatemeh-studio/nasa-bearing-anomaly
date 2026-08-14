@@ -86,12 +86,17 @@ fi
 
 step "quarto publish gh-pages"
 
-# The first publish has to be interactive. Quarto needs to confirm creating the
-# gh-pages branch and write _publish.yml recording the target; --no-prompt makes it
-# refuse rather than ask, and the error it prints ("use first `quarto publish
-# gh-pages` locally") describes the wrong cause. Once _publish.yml exists and the
-# remote branch is there, every later publish is non-interactive.
-if [[ -f _publish.yml ]] && git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+# The first publish has to be interactive. Quarto refuses to create the gh-pages
+# branch without confirmation, and --no-prompt turns that into an error whose text
+# names the wrong cause ("use first `quarto publish gh-pages` locally" -- which is
+# exactly what is running). The condition is the remote branch alone: quarto is
+# documented to write _publish.yml on first publish and did not do so here, so
+# testing for that file would keep every future run interactive.
+#
+# Note pre-commit must be installed with --allow-missing-config. The gh-pages
+# branch holds only built HTML and carries no .pre-commit-config.yaml, so a plain
+# install aborts the commit there and leaves the branch with no commits at all.
+if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
     quarto publish gh-pages --no-prompt
 else
     echo "   First publish for this repository, so this step is interactive."
