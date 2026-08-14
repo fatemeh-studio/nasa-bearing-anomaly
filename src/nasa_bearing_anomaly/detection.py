@@ -169,14 +169,17 @@ class IsolationForestDetector:
             f"  🔴 Anomalies detected: {n_anomalies}/{len(df)} ({100 * n_anomalies / len(df):.1f}%)"
         )
 
-        # Find first anomaly index
+        # The first flagged file is a detector diagnostic, not a lead time. With
+        # contamination=c the model labels that fraction of its own training window
+        # anomalous by construction, so this index sits at or near 0 on every run and
+        # the interval from it to the end is merely the run length -- 2,156 samples on
+        # test 1. Printing that as a "lead time" asserted the exact number the docstring
+        # eleven lines above explains cannot be read off is_anomaly. Lead time comes
+        # from business.compute_lead_time, which calibrates a score threshold against
+        # held-out healthy data and requires a sustained alarm.
         first_anomaly = df[df["is_anomaly"]].index.min()
         if not pd.isna(first_anomaly):
-            lead_time = len(df) - first_anomaly
-            print(
-                f"  ⏱  First anomaly at sample {first_anomaly} "
-                f"(lead time: {lead_time} samples before end)"
-            )
+            print(f"  First flagged file: {first_anomaly} (diagnostic; not a lead time)")
 
         return df
 
