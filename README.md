@@ -1,199 +1,100 @@
-# 🛠️ Industrial Anomaly Detection: Predictive Maintenance Using NASA Bearing Dataset
+# NASA IMS Bearing Anomaly Detection
 
-> **Detecting mechanical failure before it happens — saving thousands of euros per hour in downtime costs.**
+Unsupervised detection of rolling-element bearing failure in three run-to-failure test
+rigs, 2003–2004 — physics-informed vibration features scored by an Isolation Forest.
 
----
+[![CI](https://github.com/fatemeh-studio/nasa-bearing-anomaly/actions/workflows/ci.yml/badge.svg)](https://github.com/fatemeh-studio/nasa-bearing-anomaly/actions/workflows/ci.yml)
 
-## 📌 Project Overview
+> **Notebooks here are output-stripped by design**, so github.com shows code without
+> figures. The generated figures are committed under `results/figures/` and
+> `figures/headline/`. A rendered site is not published yet.
 
-This project applies Machine Learning and Physics-based feature engineering to detect early signs of **bearing failure** in industrial machinery, using the real-world **NASA IMS Bearing Dataset** (all three test runs).
+![Detection results across all three test runs](figures/headline/01_all_tests_comparison.png)
 
-The core idea is rooted in physics: a healthy bearing oscillates in a **stable, periodic pattern**. As it degrades, the vibration signal transitions from order → chaos. We detect this transition *before* catastrophic failure occurs.
+## Findings
 
----
+- **54–80 hours of warning before failure, with zero false alarms on held-out healthy
+  data** — 79.5 h, 53.7 h and 57.0 h for Tests 1–3, against 0 sustained alarms in
+  323 / 147 / 949 healthy files. Those are upper bounds of fewer than 1 in N, not
+  measured rates of zero.
+- **The obvious "first alert" metric is meaningless here, measurably so.** All three runs
+  flag file 0, because `IsolationForest(contamination=c)` labels that fraction of its
+  *training* set anomalous by construction — measured 5.03% / 5.08% / 8.01% against
+  configured 0.05 / 0.05 / 0.08. Lead time is therefore taken from a score threshold
+  calibrated on healthy data, never from `is_anomaly`.
+- **Test 3 holds 6,324 files, not the 4,448 the official IMS documentation lists.** The
+  remainder sits in an undocumented nested folder running to 2004-04-18. At file 4,448
+  the bearing is still healthy, so an analysis stopping at the documented cutoff misses
+  the failure entirely. RMS peaks at 0.759 on file 6,322 — **11.4× baseline**.
+- **The post-shutdown tail is 0, 2 and 1 files for Tests 1–3**, not "the final file of
+  each run" as the dataset documentation states. Test 1 ends on its RMS peak, so dropping
+  one file there discards the failure itself; dropping only one from Test 2 anchors it on
+  a dead rig.
 
-## 🏭 Industrial Relevance (Austria / Industry 4.0)
+Test 3's lead time is the least stable: tightening the calibrated false-alarm rate from
+1% to 0.5% moves it from 57 h to 26 h. Tests 1 and 2 hold within 1 h across that range.
 
-| Company     | Location | Use Case                     |
-| ----------- | -------- | ---------------------------- |
-| Magna Steyr | Graz     | Assembly line robotic arms   |
-| Voestalpine | Linz     | Rolling mill bearing systems |
-| AVL List    | Graz     | Engine test bench monitoring |
-| Andritz AG  | Graz     | Hydro turbine bearings       |
+## What the warning is worth
 
-> **Downtime cost:** A single unplanned production stop in heavy industry costs **€5,000–€20,000 per hour**. This model provides 12–48 hours of early warning.
+Lead time is **not** multiplied by an hourly rate — that prices hours during which the
+machine was still running. Warning converts an unplanned stoppage into a planned one, so
+the saving is the difference between the two stoppage lengths, realised only if the
+warning is long enough to order a part and book a window. `business.py` reports it as a
+sensitivity table over stated assumptions rather than as one euro figure, and prints
+those assumptions beside every amount. For scale, Senseye/Siemens
+*[The True Cost of Downtime 2022](https://blog.siemens.com/2023/04/the-true-cost-of-downtime/)*
+reports USD 532,000/h across 72 multinational industrial firms — but that is an entire
+facility stopping, and a single bearing is not a plant.
 
----
+## Data
 
-## 🧠 The Physics of Bearing Failure
+NASA IMS bearing dataset, three run-to-failure tests, 2003-10-22 to 2004-04-18, 20 kHz
+accelerometer records. J. Lee et al. (2007), IMS, University of Cincinnati — NASA Ames
+Prognostics Data Repository. Raw archive ~6.2 GB, not committed; the three summary tables
+in `data/processed/` are, so the notebooks run from a clean clone. Fetch instructions,
+channel layout, column dictionary and known defects are in
+**[`data/README.md`](data/README.md)**.
 
-Bearings fail through a well-understood progression:
-
-```text
-Stage 1 (Healthy)     → Stable periodic oscillations, low RMS
-Stage 2 (Early Wear)  → Slight increase in high-frequency components
-Stage 3 (Advanced)    → Sidebands appear around bearing defect frequencies
-Stage 4 (Failure)     → Broadband noise, chaotic vibration, thermal spike
-```
-
-**Key physical frequencies monitored:**
-
-- **BPFO** (Ball Pass Frequency Outer race): `n/2 × RPM/60 × (1 - d/D × cos α)`
-- **BPFI** (Ball Pass Frequency Inner race): `n/2 × RPM/60 × (1 + d/D × cos α)`
-- **BSF** (Ball Spin Frequency): `D/2d × RPM/60 × (1 - (d/D × cos α)²)`
-
----
-
-## 📁 Project Structure
-
-```text
-nasa-bearing-anomaly/
-│
-├── data/
-│   ├── README.md               # every data fact lives here
-│   ├── raw/                    # ~6.2 GB, not committed
-│   └── processed/              # three summary tables, committed
-│
-├── notebooks/
-│   ├── 01_data_exploration.ipynb       # what healthy and degraded look like
-│   ├── 02_feature_engineering.ipynb    # physics-informed features
-│   ├── 03_anomaly_detection.ipynb      # Isolation Forest, optional autoencoder
-│   └── 04_results_visualization.ipynb  # figures and detection summary
-│
-├── src/
-│   └── nasa_bearing_anomaly/
-│       ├── config.py           # paths, acquisition parameters, TEST_CONFIG
-│       ├── physics.py          # BPFO / BPFI / BSF / FTF from rig geometry
-│       ├── loading.py          # raw files → one row of statistics per file
-│       ├── features.py         # time-domain and Welch-PSD features
-│       ├── detection.py        # Isolation Forest + optional PyTorch autoencoder
-│       └── plotting.py         # figures, including the summary dashboard
-│
-├── results/
-│   ├── figures/                # generated PNGs
-│   └── reports/                # per-test detection output
-│
-├── tests/                      # 53 tests, no __init__.py
-│
-├── pyproject.toml              # single source of truth for dependencies
-├── environment.yml             # conda path into the same environment
-└── README.md
-```
-
----
-
-## 📊 Dataset: NASA IMS Bearing Dataset
-
-**Source:** [NASA Prognostics Center of Excellence](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/) — see [`data/README.md`](data/README.md) for download and layout
-
-| Test   | Duration              | Failed Bearing        | Failure Mode                          |
-| -------| --------------------- | --------------------- | ------------------------------------- |
-| Test 1 | ~35 days (2156 files) | Bearing 3 / Bearing 4 | Inner race (B3) + roller element (B4) |
-| Test 2 | ~7 days (984 files)   | Bearing 1             | Outer race failure                    |
-| Test 3 | ~45 days (6324 files) | Bearing 3             | Outer race failure                    |
-
-> **⚠️ Note on Test 3:** The official IMS documentation lists Set 3 as 4,448 files ending 2004-04-04, but the distributed archive actually contains **6,324 files** (in a nested `3rd_test/4th_test/txt/` folder) running to 2004-04-18. At file 4,448 the bearing is still healthy — the outer-race failure only develops in the final ~230 files. This project uses the full 6,324-file series. Full explanation and sources in [`data/README.md`](data/README.md).
-
-**Data format:** Test 1 has 8 channels (2 accelerometers × 4 bearings); Tests 2 and 3 have 4 channels (1 per bearing). Each file = 1 second, 20,480 samples at 20 kHz.
-
-### Download Instructions
-
-The raw data (~6.2 GB) is not committed to this repository. See
-[`data/README.md`](data/README.md) for the download link, the expected
-folder layout, and important notes on the Set 3 file-count discrepancy.
-
-**You do not need it to run the notebooks.** The three summary tables in
-`data/processed/` are committed so a clone runs without the download.
-
----
-
-## 🚀 Quick Start
+## Reproduce
 
 ```bash
-# 1. Clone
 git clone https://github.com/fatemeh-studio/nasa-bearing-anomaly.git
 cd nasa-bearing-anomaly
 
-# 2. Environment — either conda:
-conda env create -f environment.yml
+conda env create -f environment.yml   # or: python -m venv .venv && pip install -e ".[dev,notebook]"
 conda activate nasa-bearing-anomaly
 
-#    ...or pip alone, into an environment you manage yourself:
-pip install -e ".[dev,notebook]"        # add ,deep for the PyTorch autoencoder
+pytest                                # 93 tests
+jupyter lab notebooks/                # run 01 → 04 in order
 
-# 3. Run the notebooks in order. No raw download needed: the summary tables
-#    in data/processed/ are committed.
-jupyter lab notebooks/
+# ...or headless, from the committed tables:
+python -m nasa_bearing_anomaly.features --test all
+python -m nasa_bearing_anomaly.business --test all --feature-source enriched
 ```
 
-To regenerate those tables from the raw archive, place it as described in
-[`data/README.md`](data/README.md) and run the pipeline. Each stage writes a CSV
-the next one reads:
+## Repository layout
 
-```bash
-python -m nasa_bearing_anomaly.loading   --test all
-python -m nasa_bearing_anomaly.features  --test all
-python -m nasa_bearing_anomaly.detection --test all --method isolation_forest
-
-# Check the loader without reading the whole archive. Writes nothing.
-python -m nasa_bearing_anomaly.loading --test 3 --max_files 50
+```
+src/nasa_bearing_anomaly/  library code — physics, features, detection, business
+notebooks/                 narrative; outputs stripped, figures committed separately
+tests/                     93 tests; no __init__.py, so imports resolve as a cloner's do
+data/                      raw/ gitignored; processed/ committed. Facts in data/README.md
+figures/headline/          only the figure this README embeds
+results/                   generated figures and summary tables
 ```
 
-Quality gates:
+## Limitations
 
-```bash
-ruff check . && ruff format --check .
-pytest
-```
+- **Lead time is anchored on the end of each run.** The rigs ran to destruction, so the
+  last live acquisition is the failure — but that ties the number to when the rig happened
+  to stop, and no independent ground-truth failure timestamp exists to validate it against.
+- **Zero false alarms is an upper bound, not a rate.** The held-out healthy windows run
+  147–949 files; nothing here resolves a rate below roughly 1 in 1,000.
+- **Three runs is three samples.** The alert rule is chosen per run against that run's own
+  healthy data — correct procedure, but not the same as validating it on an unseen rig.
+- **Next:** publish the Quarto site, and test whether the defect-frequency band features
+  earn their place over RMS and kurtosis alone.
 
----
+## Licence
 
-## 🛠️ Tech Stack
-
-| Category          | Tools                                                  |
-| ----------------- | ------------------------------------------------------ |
-| Data Processing   | Python, pandas, NumPy                                  |
-| Signal Processing | SciPy (Welch PSD)                                      |
-| Machine Learning  | scikit-learn (Isolation Forest), PyTorch (autoencoder, optional) |
-| Visualization     | Matplotlib, seaborn                                    |
-| Tooling           | ruff, pytest, pre-commit, GitHub Actions               |
-| Environment       | Python 3.11, Jupyter Lab                               |
-
----
-
-## 📈 Key Results
-
-> **Not measured yet — placeholder.** The numbers below are illustrative and no
-> code in this repository produces them. They are kept only to show the shape of
-> the result, and are replaced when `business.py` lands.
-
-| Test   | Method           | Anomaly Detected | True Failure | Lead Time       |
-| ------ | ---------------- | ---------------- | ------------ | --------------  |
-| Test 1 | Isolation Forest | *placeholder*    | File 2156    | *placeholder*   |
-| Test 2 | Isolation Forest | *placeholder*    | File 984     | *placeholder*   |
-| Test 3 | Autoencoder      | *placeholder*    | File 6324    | *placeholder*   |
-
-A lead time is not a result on its own. Three things have to accompany it, and
-none of them exists yet:
-
-- a **sustained-alert rule** — k of the last m windows flagged — because triggering
-  on the first anomaly lets one early false positive inflate the number
-- a **false-alarm rate** calibrated against a healthy baseline, reported alongside
-- the **post-shutdown tail excluded**: the final file of each run was recorded after
-  the rig had already stopped, so it is not the moment of failure
-
-Until those land there is no downtime-cost figure to quote either.
-
----
-
-## ✉️ Keywords for Industry 4.0 Recruiters
-
-`Predictive Maintenance` · `Condition Monitoring` · `Industry 4.0` · `Anomaly Detection` · `Vibration Analysis` · `Smart Manufacturing` · `Signal Processing` · `IIoT` · `Bearing Diagnostics`
-
----
-
-*J. Lee, H. Qiu, G. Yu, J. Lin, and Rexnord Technical Services (2007).*
-*IMS, University of Cincinnati. "Bearing Data Set",*
-*NASA Ames Prognostics Data Repository,*
-*NASA Ames Research Center, Moffett Field, CA.*
-*<https://phm-datasets.s3.amazonaws.com/NASA/4.+Bearings.zip>*
+Code MIT (`LICENSE`). Data: see [`data/README.md`](data/README.md).
