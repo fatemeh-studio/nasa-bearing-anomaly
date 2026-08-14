@@ -34,6 +34,35 @@ REPORTS_DIR = RESULTS_ROOT / "reports"
 HEADLINE_DIR = PROJECT_ROOT / "figures" / "headline"
 
 
+def repo_path(path: Path) -> str:
+    """
+    Render a path for display, relative to the repository root.
+
+    The constants above are absolute so that a stage behaves identically whatever
+    directory the kernel started in. Printing them raw is a different matter: the
+    prints are captured into notebook stored outputs, and Quarto renders those
+    onto the published site, so an absolute path puts the author's home directory
+    and username on a public page. It is also useless to a reader, whose checkout
+    is somewhere else entirely.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Any path, inside or outside the repository.
+
+    Returns
+    -------
+    str
+        The path relative to ``PROJECT_ROOT`` when it lies inside the repository,
+        otherwise the path unchanged -- an absolute path from elsewhere is
+        genuinely the useful thing to show.
+    """
+    try:
+        return str(Path(path).resolve().relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
+
 # ─── Acquisition Parameters ────────────────────────────────────────────────
 # Nominal rate as used throughout the IMS documentation. The effective rate is
 # closer to 20.48 kHz; the nominal value is what every published analysis of this

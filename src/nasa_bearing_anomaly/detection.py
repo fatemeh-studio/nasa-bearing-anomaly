@@ -35,7 +35,7 @@ from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-from .config import REPORTS_DIR, TEST_CONFIG
+from .config import REPORTS_DIR, TEST_CONFIG, repo_path
 from .loading import load_processed
 
 # Try importing PyTorch (optional, graceful fallback)
@@ -219,7 +219,7 @@ class IsolationForestDetector:
             },
             path / "isolation_forest.pkl",
         )
-        print(f"  Model saved to {path / 'isolation_forest.pkl'}")
+        print(f"  Model saved to {repo_path(path / 'isolation_forest.pkl')}")
 
     @classmethod
     def load(cls, path: Path) -> "IsolationForestDetector":
@@ -642,7 +642,7 @@ def run_pipeline(
     out_path = REPORTS_DIR / f"test{test_id}_{method}_results.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df_result.to_csv(out_path)
-    print(f"Results saved: {out_path}")
+    print(f"Results saved: {repo_path(out_path)}")
 
     return df_result
 

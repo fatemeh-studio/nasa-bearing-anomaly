@@ -24,7 +24,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from .config import FIGURES_DIR, TEST_CONFIG
+from .config import FIGURES_DIR, TEST_CONFIG, repo_path
 
 # ─── Style Setup ───────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ class BearingPlotter:
         if self.save_figures:
             path = self.fig_dir / f"{name}.png"
             fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=STYLE["bg_color"])
-            print(f"  Saved: {path}")
+            print(f"  Saved: {repo_path(path)}")
 
     # ── Plot 1: RMS Overview ───────────────────────────────────────────────
 

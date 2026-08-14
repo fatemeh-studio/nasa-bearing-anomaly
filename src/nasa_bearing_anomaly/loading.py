@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .config import BEARING_PARAMS, TEST_CONFIG
+from .config import BEARING_PARAMS, TEST_CONFIG, repo_path
 from .physics import compute_defect_frequencies
 
 try:
@@ -202,7 +202,7 @@ def save_processed(df: pd.DataFrame, test_id: int) -> Path:
     output_path = TEST_CONFIG[test_id]["output_file"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_path)
-    print(f"Saved: {output_path}  ({len(df)} rows, {len(df.columns)} columns)")
+    print(f"Saved: {repo_path(output_path)}  ({len(df)} rows, {len(df.columns)} columns)")
     return output_path
 
 

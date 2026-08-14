@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 from scipy import signal
 
-from .config import BEARING_PARAMS, SAMPLING_RATE_HZ, TEST_CONFIG
+from .config import BEARING_PARAMS, SAMPLING_RATE_HZ, TEST_CONFIG, repo_path
 from .loading import load_processed
 from .physics import compute_defect_frequencies
 
@@ -355,7 +355,9 @@ def enrich_processed(test_id: int) -> pd.DataFrame:
     # Save
     out_path = TEST_CONFIG[test_id]["output_file"].parent / f"test{test_id}_features.csv"
     df.to_csv(out_path)
-    print(f"Saved enriched features: {out_path}  ({len(df)} rows, {len(df.columns)} columns)")
+    print(
+        f"Saved enriched features: {repo_path(out_path)}  ({len(df)} rows, {len(df.columns)} columns)"
+    )
     return df
 
 
