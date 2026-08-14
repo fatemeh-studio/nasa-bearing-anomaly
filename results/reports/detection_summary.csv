@@ -1,0 +1,4 @@
+test,failed_bearing,failure_mode,files,anomalies_flagged,first_alert_file,raw_lead_hours
+1,Bearing3,Inner race failure (Bearing 4 roller element also failed),2156,458,0,827.6
+2,Bearing1,Outer race failure,984,417,0,163.8
+3,Bearing3,Outer race failure,6324,1287,0,1073.3

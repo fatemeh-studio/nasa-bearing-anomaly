@@ -1,0 +1,155 @@
+# =============================================================================
+#  nasa-bearing-anomaly
+#
+#  Every rule below carries the reason it exists. A rule whose reason is gone
+#  should be deleted, not left behind "just in case".
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+#  Data — raw
+# -----------------------------------------------------------------------------
+# The NASA IMS vibration archive is ~6.2 GB. Never committed.
+# data/README.md carries the download link, the expected folder layout, and the
+# Set 3 file-count discrepancy a cloner has to know about.
+#
+# The trailing /* matters: with `data/raw/` git would not descend into the
+# directory at all, so the .gitkeep negation below could never match and a clone
+# would arrive with no data/raw/ for the loader to write into.
+data/raw/*
+!data/raw/.gitkeep
+
+# -----------------------------------------------------------------------------
+#  Data — reference PDFs
+# -----------------------------------------------------------------------------
+# Papers kept beside the code while working. One of them is published by
+# Elsevier and may not be redistributed; putting it in a public repository is a
+# copyright problem that cannot be undone once it is in git history. The papers
+# are cited in data/README.md — they are not shipped.
+data/docs/
+
+# -----------------------------------------------------------------------------
+#  Data — processed
+# -----------------------------------------------------------------------------
+# The three per-file summary tables ARE committed, deliberately: the raw input is
+# a 6.2 GB download, so without them nobody can run notebooks 02-04 from a clone.
+#
+# The negation names them individually rather than *.csv. The enriched feature
+# tables (test{N}_features.csv) are derived from these three in seconds and are
+# several times larger, so committing them would cost tens of megabytes and buy
+# nothing. Anything else dropped here — pickles, parquet, checkpoints — is scratch.
+data/processed/*
+!data/processed/test1_raw.csv
+!data/processed/test2_raw.csv
+!data/processed/test3_raw.csv
+
+# -----------------------------------------------------------------------------
+#  Results — mostly committed on purpose
+# -----------------------------------------------------------------------------
+# results/figures/ is the evidence behind the claims in the README, not scratch,
+# so it is committed. Same for the summary tables in results/reports/. The
+# *.pt / *.pkl / *.joblib rules below catch model checkpoints if any land here.
+#
+# The per-test scored frames are the exception. detection writes back the entire
+# feature table it was given -- around 200 columns of rolling and difference
+# features -- with three result columns appended, so each file is 99% a copy of
+# its own input and they total tens of megabytes. They regenerate in seconds from
+# the committed tables, and they exist only to hand data from notebook 03 to
+# notebook 04, which recreates them when they are absent. The one-row-per-test
+# summary beside them is the actual artifact and stays committed.
+results/reports/*_results.csv
+
+# -----------------------------------------------------------------------------
+#  Working notes
+# -----------------------------------------------------------------------------
+# Planning documents, status files, scratch TODOs. Working material, not
+# portfolio content, and it dates far faster than the code does.
+/plan/
+
+# -----------------------------------------------------------------------------
+#  Rendered site
+# -----------------------------------------------------------------------------
+# The Quarto site is rendered locally and published to the gh-pages branch.
+# main holds source only — a committed site is what turns a 3 MB repo into 26 MB.
+/_site/
+/.quarto/
+/_freeze/
+
+# -----------------------------------------------------------------------------
+#  Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# -----------------------------------------------------------------------------
+#  Environments
+# -----------------------------------------------------------------------------
+# Listed for completeness only. This project uses conda; environment.yml and
+# pyproject.toml between them describe the environment, and neither is ignored.
+.venv/
+venv/
+env/
+ENV/
+
+# -----------------------------------------------------------------------------
+#  Test and lint caches
+# -----------------------------------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# -----------------------------------------------------------------------------
+#  Jupyter
+# -----------------------------------------------------------------------------
+# Notebook OUTPUTS are stripped from commits by the nbstripout git clean filter,
+# configured in .gitattributes — not by a rule here, and not by a pre-commit
+# hook. The filter rewrites only the blob git stores, so the outputs stay on disk
+# where Quarto renders the site from them. A stripping pre-commit hook would
+# erase them on disk instead; do not add one. See README.md.
+.ipynb_checkpoints/
+
+# -----------------------------------------------------------------------------
+#  Model checkpoints
+# -----------------------------------------------------------------------------
+# PyTorch autoencoder weights and pickled sklearn estimators. Regenerated by
+# re-running the pipeline, and a pickle is not reviewable in a diff.
+*.pt
+*.pth
+*.pkl
+*.joblib
+
+# -----------------------------------------------------------------------------
+#  Editors and IDEs
+# -----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*~
+
+# -----------------------------------------------------------------------------
+#  OS
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------------------------------------------------------
+#  Secrets
+# -----------------------------------------------------------------------------
+# No secret is needed to run this project — the dataset is a public download.
+# These rules are a floor, not a description of what exists.
+.env
+.env.*
+*.key
+*.pem
+credentials.json

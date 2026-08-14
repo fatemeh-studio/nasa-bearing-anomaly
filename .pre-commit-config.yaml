@@ -1,0 +1,56 @@
+# Run on every commit. Install once per clone with `pre-commit install`.
+#
+# There is deliberately no nbstripout hook here. Stripping notebook outputs is a
+# git *clean filter*, installed with `nbstripout --install --attributes
+# .gitattributes`, which rewrites only the blob git stores and leaves the working
+# copy alone. A pre-commit hook would strip the files on disk instead -- and Quarto
+# renders .ipynb from stored outputs, so it would empty the notebooks and the site
+# with them. The local hook below checks the filter is installed without touching a
+# single file; CI verifies what actually landed in git.
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Pinned to the ruff in this environment. A hook on a different version
+    # disagrees with `ruff check .` about rules and fixes, so the two gates stop
+    # meaning the same thing. Bump both together.
+    rev: v0.16.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: nbstripout-installed
+        name: nbstripout filter is installed
+        entry: nbstripout --is-installed
+        language: system
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        # The limit stays at 1000 kB. It exists to stop the next accidental large
+        # file, so raising it to admit the known ones would silently permit that
+        # next file too. Two exemptions, both narrow:
+        #
+        # 1. The two committed data tables that genuinely exceed it. test2_raw.csv
+        #    is 452 kB and needs no exemption. Why they are committed at all is in
+        #    data/README.md.
+        #
+        # 2. Notebooks -- because this hook measures the working copy
+        #    (os.stat().st_size) and for .ipynb the working copy is deliberately
+        #    not what git stores. The nbstripout clean filter strips outputs from
+        #    the blob while leaving them on disk for Quarto to render from, so an
+        #    executed notebook is ~600 kB on disk and ~11 kB in git. Measuring the
+        #    former means blocking commits over bytes that are never committed,
+        #    and it worsens every time a notebook is run. The guard is redundant
+        #    here regardless: the filter already bounds what git can store.
+        args: [--maxkb=1000]
+        exclude: ^(data/processed/test[13]_raw\.csv|notebooks/.*\.ipynb)$
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-toml
+      - id: check-yaml
