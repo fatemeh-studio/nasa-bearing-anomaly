@@ -1,0 +1,4 @@
+test,failed_bearing,feature_source,files,shutdown_files_dropped,rule_k,rule_m,target_far,score_threshold,alarm_file,alarm_time,anchor_file,anchor_time,lead_hours,heldout_healthy_files,heldout_healthy_hours,heldout_false_alarms,healthy_region_ok
+1,Bearing3,enriched,2156,0,3,5,0.01,-0.153199,1830,2003-11-22 16:06:56,2155,2003-11-25 23:39:56,79.5,323,164.9,0,True
+2,Bearing1,enriched,984,2,3,5,0.01,-0.138358,659,2004-02-17 00:22:39,981,2004-02-19 06:02:39,53.7,147,24.3,0,True
+3,Bearing3,enriched,6324,1,4,5,0.01,-0.202523,5980,2004-04-15 17:32:55,6322,2004-04-18 02:32:55,57.0,949,165.3,0,True
