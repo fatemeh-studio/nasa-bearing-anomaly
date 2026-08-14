@@ -364,11 +364,50 @@ class BearingPlotter:
 
     # ── Plot 6: Summary Dashboard ──────────────────────────────────────────
 
-    def plot_summary_dashboard(self, df: pd.DataFrame, feature_cols: list = None) -> plt.Figure:
+    def plot_summary_dashboard(
+        self,
+        df: pd.DataFrame,
+        feature_cols: list | None = None,
+        alarm_file: int | None = None,
+        lead_hours: float | None = None,
+        k: int | None = None,
+        m: int | None = None,
+    ) -> plt.Figure:
         """
         Combine the four key panels into a single-figure dashboard.
 
         The centrepiece figure for the README and the site.
+
+        The alarm is passed in rather than derived here. An earlier version of
+        this method recomputed it as ``df.index[is_anomaly].min()``, which is
+        file 0 on all three runs: ``IsolationForest(contamination=c)`` labels
+        that fraction of its own training window anomalous by construction, so
+        the first flagged file carries no information. The figure therefore
+        annotated a number the project's own prose calls meaningless, and
+        nothing went red, because nothing reads a PNG. Taking the value as a
+        parameter means the plotter can no longer hold an opinion about when
+        the alarm fired that differs from ``business.compute_lead_time``.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Scored frame carrying ``anomaly_score`` and ``is_anomaly``.
+        feature_cols : list of str, optional
+            Columns to project for the PCA panel. The panel is skipped if None.
+        alarm_file : int, optional
+            File index at which the sustained-alert rule first fired, from
+            ``business.LeadTimeResult.alarm_file``. No marker is drawn if None.
+        lead_hours : float, optional
+            Hours between ``alarm_file`` and the failure anchor. Labels the
+            marker; omitted from the label if None.
+        k, m : int, optional
+            The sustained-alert rule in force — k flagged files out of the last
+            m. Named in the legend so the figure states the rule it used.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The assembled dashboard.
         """
         config = TEST_CONFIG[self.test_id]
         target = config["failed_bearing"]
@@ -409,18 +448,28 @@ class BearingPlotter:
                     color=STYLE["anomaly_color"],
                     s=6,
                     zorder=5,
-                    label="Detected Anomaly",
+                    label="Flagged file (raw)",
                 )
-                # Lead time annotation
-                first_anom = df.index[anom_mask].min() if anom_mask.any() else len(df)
-                ax1.axvline(x=first_anom, color=STYLE["warn_color"], linestyle="--", linewidth=1.5)
-                ax1.text(
-                    first_anom + 5,
-                    ax1.get_ylim()[1] * 0.7,
-                    f"First alert\n(file {first_anom})",
-                    color=STYLE["warn_color"],
-                    fontsize=8,
+
+            # The sustained alarm, not the first flagged file. See the docstring.
+            if alarm_file is not None:
+                rule = f" ({k}-of-{m})" if k is not None and m is not None else ""
+                ax1.axvline(
+                    x=alarm_file,
+                    color=STYLE["healthy_color"],
+                    linestyle="--",
+                    linewidth=1.8,
+                    label=f"Sustained alarm{rule}",
                 )
+                if lead_hours is not None:
+                    ax1.text(
+                        alarm_file - max(2, len(df) * 0.01),
+                        ax1.get_ylim()[1] * 0.70,
+                        f"{lead_hours:.0f} h warning\nfile {alarm_file} of {len(df)}",
+                        color=STYLE["healthy_color"],
+                        fontsize=8,
+                        ha="right",
+                    )
 
         ax1.set_title(f"{target} — RMS Vibration Signal", fontsize=10, pad=8)
         ax1.set_xlabel("File Index")
