@@ -28,6 +28,11 @@ RESULTS_ROOT = PROJECT_ROOT / "results"
 FIGURES_DIR = RESULTS_ROOT / "figures"
 REPORTS_DIR = RESULTS_ROOT / "reports"
 
+# The one figure the README embeds, kept apart from the generated ones so the
+# portfolio-wide convention holds: figures/headline/ is what a README may point
+# at, results/figures/ is everything the notebooks produce.
+HEADLINE_DIR = PROJECT_ROOT / "figures" / "headline"
+
 
 # ─── Acquisition Parameters ────────────────────────────────────────────────
 # Nominal rate as used throughout the IMS documentation. The effective rate is
