@@ -1,7 +1,7 @@
 """
-detection.py
-------------
-Two complementary anomaly detection approaches:
+Two complementary unsupervised anomaly detectors for bearing vibration.
+
+The approaches:
 
 1. ISOLATION FOREST (sklearn)
    - Unsupervised: no labels needed
@@ -110,8 +110,25 @@ class IsolationForestDetector:
 
     def fit(self, df: pd.DataFrame, feature_cols: list) -> "IsolationForestDetector":
         """
-        Fit on the HEALTHY portion of the data (first 60% of the time series).
-        We assume early files represent normal operation.
+        Fit on the assumed-healthy first 60% of the time series.
+
+        Early files are taken to represent normal operation, which holds for a
+        run-to-failure rig. Note that ``contamination`` still labels that
+        fraction of this training set anomalous, so the fitted model flags some
+        of these healthy files by construction -- see ``business.py``, which is
+        why a lead time cannot be read off ``is_anomaly`` directly.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Full feature table, in time order.
+        feature_cols : list
+            Columns to fit on.
+
+        Returns
+        -------
+        IsolationForestDetector
+            This detector, fitted.
         """
         self.feature_cols_ = feature_cols
         n_healthy = int(len(df) * 0.60)
@@ -164,10 +181,33 @@ class IsolationForestDetector:
         return df
 
     def fit_predict(self, df: pd.DataFrame, feature_cols: list) -> pd.DataFrame:
+        """
+        Fit on the healthy portion, then score the whole series.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Full feature table, in time order.
+        feature_cols : list
+            Columns to fit and score on.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The table with the three result columns appended.
+        """
         self.fit(df, feature_cols)
         return self.predict(df)
 
     def save(self, path: Path):
+        """
+        Persist scaler, PCA, model and feature list to ``path``.
+
+        Parameters
+        ----------
+        path : pathlib.Path
+            Directory to write ``isolation_forest.pkl`` into. Created if absent.
+        """
         path.mkdir(parents=True, exist_ok=True)
         joblib.dump(
             {
@@ -182,6 +222,20 @@ class IsolationForestDetector:
 
     @classmethod
     def load(cls, path: Path) -> "IsolationForestDetector":
+        """
+        Restore a detector saved by :meth:`save`.
+
+        Parameters
+        ----------
+        path : pathlib.Path
+            Directory holding ``isolation_forest.pkl``.
+
+        Returns
+        -------
+        IsolationForestDetector
+            A detector ready to ``predict``; its constructor arguments are not
+            restored, only the fitted state.
+        """
         data = joblib.load(path / "isolation_forest.pkl")
         obj = cls()
         obj.scaler = data["scaler"]
@@ -228,6 +282,19 @@ if TORCH_AVAILABLE:
             )
 
         def forward(self, x):
+            """
+            Encode to the bottleneck and reconstruct.
+
+            Parameters
+            ----------
+            x : torch.Tensor
+                Batch of scaled feature vectors.
+
+            Returns
+            -------
+            torch.Tensor
+                Reconstruction, same shape as ``x``.
+            """
             z = self.encoder(x)
             x_hat = self.decoder(z)
             return x_hat
@@ -271,6 +338,26 @@ if TORCH_AVAILABLE:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         def fit(self, df: pd.DataFrame, feature_cols: list) -> "AutoencoderDetector":
+            """
+            Train on the assumed-healthy first 60%, then set the error threshold.
+
+            The threshold is the ``threshold_percentile`` of reconstruction error
+            over the training set, so unlike the Isolation Forest's
+            ``contamination`` it is an explicit quantile of healthy error rather
+            than a forced label rate.
+
+            Parameters
+            ----------
+            df : pandas.DataFrame
+                Full feature table, in time order.
+            feature_cols : list
+                Columns to train on.
+
+            Returns
+            -------
+            AutoencoderDetector
+                This detector, trained, with ``threshold_`` set.
+            """
             self.feature_cols_ = feature_cols
             n_healthy = int(len(df) * 0.60)
             df_train = df.iloc[:n_healthy]
@@ -322,6 +409,25 @@ if TORCH_AVAILABLE:
             return self
 
         def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+            """
+            Score every sample by reconstruction error.
+
+            Note the sign convention differs from the Isolation Forest: here a
+            **higher** ``anomaly_score`` is more anomalous, because the score is
+            an error. ``business.py`` therefore cannot be pointed at autoencoder
+            output without flipping the comparison.
+
+            Parameters
+            ----------
+            df : pandas.DataFrame
+                Feature table carrying the columns fitted on.
+
+            Returns
+            -------
+            pandas.DataFrame
+                The table with ``anomaly_score``, ``is_anomaly`` and
+                ``anomaly_label`` appended.
+            """
             X = df[self.feature_cols_].fillna(0).to_numpy()
             X_scaled = self.scaler.transform(X)
             X_tensor = torch.FloatTensor(X_scaled).to(self.device)
@@ -343,6 +449,21 @@ if TORCH_AVAILABLE:
             return df
 
         def fit_predict(self, df: pd.DataFrame, feature_cols: list) -> pd.DataFrame:
+            """
+            Train on the healthy portion, then score the whole series.
+
+            Parameters
+            ----------
+            df : pandas.DataFrame
+                Full feature table, in time order.
+            feature_cols : list
+                Columns to train and score on.
+
+            Returns
+            -------
+            pandas.DataFrame
+                The table with the three result columns appended.
+            """
             self.fit(df, feature_cols)
             return self.predict(df)
 
@@ -388,25 +509,105 @@ def select_features(df: pd.DataFrame, bearing_prefix: str = None) -> list:
     return cols
 
 
-def run_pipeline(test_id: int, method: str = "isolation_forest") -> pd.DataFrame:
+FEATURE_SOURCES = ("auto", "enriched", "basic")
+
+
+def resolve_feature_table(test_id: int, feature_source: str = "auto") -> tuple[pd.DataFrame, str]:
+    """
+    Load the feature table for one test and report which table was used.
+
+    Two tables can back a detection run and they do not produce the same answer.
+    ``data/processed/test{N}_raw.csv`` is committed and carries the six summary
+    statistics per channel. ``data/processed/test{N}_features.csv`` is written by
+    ``features.enrich_processed``, adds rolling and first-difference columns, and
+    is gitignored -- so it is absent from a fresh clone until the pipeline has
+    been run. For the failed bearing of test 3 that is 20 selected feature
+    columns against 4.
+
+    A different feature count fits a different Isolation Forest and yields
+    different anomaly scores, so choosing whichever table happened to be on disk
+    would make every downstream number depend on an untracked file. The choice is
+    therefore named in the return value and printed, and ``enriched``/``basic``
+    let a caller pin it rather than inherit it from the filesystem.
+
+    Parameters
+    ----------
+    test_id : int
+        1, 2 or 3.
+    feature_source : {'auto', 'enriched', 'basic'}
+        ``auto`` prefers the enriched table and falls back to the committed one,
+        announcing which it took. ``enriched`` requires the enriched table and
+        raises if it is missing. ``basic`` always reads the committed table.
+
+    Returns
+    -------
+    tuple of (pandas.DataFrame, str)
+        The loaded table and the source actually used, ``'enriched'`` or
+        ``'basic'``.
+
+    Raises
+    ------
+    ValueError
+        If ``feature_source`` is not one of ``FEATURE_SOURCES``.
+    FileNotFoundError
+        If ``feature_source='enriched'`` and the enriched table is absent.
+    """
+    if feature_source not in FEATURE_SOURCES:
+        raise ValueError(f"feature_source must be one of {FEATURE_SOURCES}, got {feature_source!r}")
+
+    config = TEST_CONFIG[test_id]
+    features_path = config["output_file"].parent / f"test{test_id}_features.csv"
+
+    if feature_source == "enriched" and not features_path.exists():
+        raise FileNotFoundError(
+            f"Enriched feature table not found: {features_path}\n"
+            f"Run: python -m nasa_bearing_anomaly.features --test {test_id}"
+        )
+
+    if feature_source != "basic" and features_path.exists():
+        df = pd.read_csv(features_path, index_col="file_index")
+        print(f"Feature source: enriched ({features_path.name}, {len(df.columns)} columns)")
+        return df, "enriched"
+
+    df = load_processed(test_id)
+    print(f"Feature source: basic ({config['output_file'].name}, {len(df.columns)} columns)")
+    if feature_source == "auto":
+        print(
+            "  Note: the enriched table is absent, so this run uses the committed "
+            "summary table.\n"
+            "  Rolling and first-difference features are not included and the "
+            "anomaly scores will\n"
+            "  differ from a run made against the enriched table. Run "
+            f"'python -m nasa_bearing_anomaly.features --test {test_id}' first to "
+            "match the published numbers."
+        )
+    return df, "basic"
+
+
+def run_pipeline(
+    test_id: int, method: str = "isolation_forest", feature_source: str = "auto"
+) -> pd.DataFrame:
     """
     Full detection pipeline for a single test.
 
     Parameters
     ----------
-    test_id : 1, 2, or 3
-    method : 'isolation_forest' or 'autoencoder'
+    test_id : int
+        1, 2, or 3.
+    method : {'isolation_forest', 'autoencoder'}
+        Detector to fit.
+    feature_source : {'auto', 'enriched', 'basic'}
+        Which feature table to read. See :func:`resolve_feature_table`.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The input table with ``anomaly_score``, ``anomaly_label`` and
+        ``is_anomaly`` appended.
     """
     config = TEST_CONFIG[test_id]
 
-    # Load features (try enriched first, fall back to basic)
-    features_path = config["output_file"].parent / f"test{test_id}_features.csv"
-    if features_path.exists():
-        df = pd.read_csv(features_path, index_col="file_index")
-        print(f"📂 Loaded enriched features: {features_path}")
-    else:
-        df = load_processed(test_id)
-        print(f"📂 Loaded basic processed: {config['output_file']}")
+    df, source_used = resolve_feature_table(test_id, feature_source)
 
     # Select feature columns
     failed = config["failed_bearing"]
@@ -414,7 +615,9 @@ def run_pipeline(test_id: int, method: str = "isolation_forest") -> pd.DataFrame
     if len(feature_cols) < 2:
         feature_cols = select_features(df)  # fallback: all bearings
 
-    print(f"🎯 Failed bearing: {failed} | Features selected: {len(feature_cols)}")
+    print(
+        f"Failed bearing: {failed} | Features selected: {len(feature_cols)} (source: {source_used})"
+    )
 
     # Run detector
     contamination = 0.05 if test_id in [1, 2] else 0.08  # Test 3 degrades more gradually
@@ -455,12 +658,22 @@ if __name__ == "__main__":
         choices=["isolation_forest", "autoencoder"],
         help="Detection method",
     )
+    parser.add_argument(
+        "--feature-source",
+        type=str,
+        default="auto",
+        choices=list(FEATURE_SOURCES),
+        help=(
+            "Which feature table to read: 'auto' prefers the enriched table, "
+            "'enriched' requires it, 'basic' forces the committed summary table"
+        ),
+    )
     args = parser.parse_args()
 
     tests = [1, 2, 3] if args.test == "all" else [int(args.test)]
 
     for t in tests:
         print(f"\n{'=' * 60}")
-        print(f"🏭 Running {args.method} on Test {t}...")
+        print(f"Running {args.method} on Test {t}...")
         print(f"{'=' * 60}")
-        run_pipeline(t, method=args.method)
+        run_pipeline(t, method=args.method, feature_source=args.feature_source)
