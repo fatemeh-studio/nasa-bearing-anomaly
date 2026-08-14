@@ -1,0 +1,168 @@
+---
+title: "Method"
+subtitle: "Physics-informed features, and an alert rule chosen without looking at the answer"
+---
+
+The model here is ordinary — a scikit-learn Isolation Forest, which is the most
+common choice made on this dataset. What the project rests on instead is the two
+things either side of it: features derived from bearing kinematics rather than
+picked off a list, and a lead-time metric built so that it cannot be tuned into a
+flattering number.
+
+## Why a bearing defect has a frequency
+
+A rolling-element bearing is a machine with known geometry, so a defect in it does not
+produce generic "vibration". Each rolling element strikes the defect once per pass,
+and the pass rate follows from the geometry and shaft speed alone. Four rates matter,
+one per defect location:
+
+| Frequency | Struck by | Indicates | This rig |
+|---|---|---|---|
+| BPFO — ball pass frequency, outer race | each ball passing a fixed outer-race point | outer-race spall | 236.403 Hz |
+| BPFI — ball pass frequency, inner race | each ball passing a point on the rotating inner race | inner-race spall | 296.930 Hz |
+| BSF — ball spin frequency | a defect on a ball itself, once per rotation | rolling-element defect | 139.917 Hz |
+| FTF — fundamental train frequency | the cage rotating | cage damage | 14.775 Hz |
+
+Geometry, derivation and provenance are in **[the data documentation](data.qmd)**;
+they are properties of the rig, not choices made here.
+
+This is what makes a fault *locatable* rather than merely detectable. Energy rising at
+236 Hz and its harmonics says **outer race** — it does not say "something is wrong".
+Every feature below exists to make that structure visible to a model that has no idea
+what a bearing is.
+
+## The features, and what each is for
+
+**Time domain** — cheap, and the first thing to move:
+
+- **RMS** — total vibration energy. The primary degradation indicator, and on this
+  data it rises 11.4× above baseline before Test 3's bearing fails.
+- **Kurtosis** — the fourth moment, sensitive to *impulsiveness* rather than
+  amplitude. A spall produces sharp repeated impacts, which raise kurtosis while RMS
+  is still near baseline, so it can lead RMS. Note this project computes **excess**
+  kurtosis, where Gaussian reads 0 and not 3 — every threshold in the bearing
+  literature is quoted 3 too high for this column. See [the data
+  documentation](data.qmd).
+- **Crest factor** and **clearance factor** — peak-to-average shape ratios, the same
+  impulsiveness idea normalised differently.
+
+**Frequency domain**, from a Welch power spectral density estimate:
+
+- **Defect-frequency band energy** — power in narrow bands around BPFO, BPFI, BSF and
+  their harmonics. This is the physics-informed feature proper: it asks the specific
+  question the geometry poses.
+- **Spectral entropy** — how evenly energy is spread across the spectrum.
+- **High-frequency ratio** — proportion of energy above a cutoff.
+
+## Three feature directions that are the opposite of the intuition
+
+Each of these is a trap that produces a confidently wrong reading, so they are worth
+stating plainly — together with how firmly each is actually established here, which
+differs between them.
+
+- **Spectral entropy is *higher* in healthy bearings, not lower.** The intuition says
+  a fault means disorder means high entropy. The opposite holds: healthy bearing noise
+  is broadband and close to flat, which is maximum entropy. A developing defect
+  *concentrates* energy into BPFO harmonics — structure, not noise — and structure
+  lowers entropy. This one is **pinned by a test**
+  (`test_spectral_entropy_faulty_lower_than_healthy`, asserting healthy > faulty on
+  synthetic signals), so it cannot silently regress.
+- **`high_freq_ratio` runs the other way too**, for the same underlying reason:
+  healthy Gaussian noise is already rich in high frequencies, so there is little
+  headroom for a fault to add any. Only the `[0, 1]` range is asserted by a test; the
+  direction is documented but not pinned.
+- **`crest_factor` becomes unreliable at high fault severity.** The standard
+  explanation is that it rises early, as discrete impacts appear against a quiet
+  floor, then falls back once the defect is severe enough that impacts merge into a
+  noise floor the fault itself has lifted — so the peak stops standing out from the
+  average. Read monotonically, it will eventually suggest the bearing is recovering.
+  Only `crest_factor >= 1` is asserted by a test; the non-monotonicity is a
+  documented caution here, not a measurement this project makes.
+
+The uneven footing is deliberate to record rather than paper over: one direction is
+enforced by the suite, two are conventions carried from the literature and the feature
+definitions. Anything relying on the latter two should re-derive them first.
+
+## The detector
+
+`StandardScaler` → optional PCA → `IsolationForest`, fitted on the **first 60%** of
+each series on the assumption that a run-to-failure rig starts healthy, then scoring
+the whole series. Isolation Forest suits the problem because it needs no labels and
+isolates outliers by random partitioning, which is cheap and explainable.
+
+An autoencoder path exists (PyTorch, optional install) and is handled correctly by the
+metric layer, including its inverted sign convention. No autoencoder result is
+published: it did not earn a place over the Isolation Forest on this data.
+
+## Turning scores into an alert, without cheating
+
+This is the part that took the work. Three problems have to be solved in order, and
+each one is a precondition for the next.
+
+### 1. `is_anomaly` cannot be used at all
+
+`contamination=c` guarantees that fraction of the **training** window is labelled
+anomalous, and the training window is the part assumed healthy. Measured: 5.03%, 5.08%
+and 8.01% of training files flagged, against configured 0.05, 0.05 and 0.08. So the
+label is doing what it was asked to do, and the first flagged file lands at or near
+file 0 on every run. The lead time is therefore read from a **score threshold**, never
+from `is_anomaly`.
+
+### 2. A single flagged window is not an alert
+
+Runs of consecutive flags occur by chance at those rates — a 10-of-10 rule still fires
+at file 9 of Tests 2 and 3. The rule is **k of the last m** files flagged.
+
+### 3. Choosing k and m is where a result gets fabricated
+
+Picking the (k, m) that yields the nicest lead time is precisely the failure the
+sustained rule exists to prevent, and it would be invisible in the output. Two things
+prevent it here:
+
+**The candidate list is fixed in advance**, ordered by window length then strictness —
+3-of-5, 4-of-5, 5-of-5, 6-of-10, … 30-of-30 — and **the first entry that does not fire
+on healthy data wins**. That is the *most sensitive* rule meeting the constraint, not
+the best-scoring one. Lead time is never consulted during selection.
+
+**The healthy region is split into three disjoint windows**, so no window both sets a
+parameter and scores it:
+
+| Window | Slice of the live series | Job |
+|---|---|---|
+| Calibration | first 10% | sets the score threshold, at a 1% per-file false-alarm rate |
+| Selection | 10% – 25% | chooses k and m |
+| Held out | 25% – 40% | reports the false-alarm rate — **never touched before this** |
+
+The reported "0 false alarms in 323 / 147 / 949 files" comes from the third window
+only, which is what makes it out-of-sample.
+
+The 40% boundary is itself an assumption — a run that degraded early would push the
+"healthy" window into the failure and report a real detection as a false positive — so
+it is **checked rather than assumed**: `check_healthy_region` verifies RMS stays below
+2× baseline throughout. All three runs pass.
+
+### 4. The post-shutdown tail
+
+Each rig auto-terminates on a debris-triggered switch, and the acquisitions after that
+read near-zero RMS on every channel. They are not healthy readings, and they must not
+anchor a lead time. The tail is **measured per run, not assumed** — 0 files for Test 1,
+2 for Test 2, 1 for Test 3 — by requiring *every* bearing to fall below 0.2× baseline,
+because one bearing can go quiet through damage but all four go quiet only when the
+shaft stops. Test 1 never went quiet at all and ends on its RMS peak, so the usual
+"drop the last file" would have discarded the very failure being measured. Details in
+[the data documentation](data.qmd).
+
+## What this does not establish
+
+- **Three runs is three samples.** The alert rule is selected per run against that
+  run's own healthy data. That is correct procedure, and it is not the same as
+  validating a fixed rule on an unseen rig.
+- **Zero false alarms is an upper bound.** 147 to 949 held-out files cannot resolve a
+  rate below roughly 1 in 1,000.
+- **Lead time is anchored on the end of the run.** The rigs ran to destruction, so the
+  last live acquisition is taken as the failure — but no independent ground-truth
+  failure timestamp exists to check that against, and it ties the number to when the
+  rig happened to stop.
+- **The defect-frequency features have not been ablated.** Whether they earn their
+  place over RMS and kurtosis alone is the obvious next experiment and has not been
+  run.

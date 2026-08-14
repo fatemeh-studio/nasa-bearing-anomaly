@@ -1,0 +1,21 @@
+---
+title: "Data"
+shift-heading-level-by: 1
+---
+
+<!--
+One include, deliberately. data/README.md is the single source of truth for every
+fact about the data, and it stays browsable on GitHub at its own path. Restating any
+of it here would create a second copy that drifts. The "!data/README.md" entry in
+_quarto.yml's render list stops Quarto also emitting it as a standalone page.
+
+shift-heading-level-by pushes the included file's headings down one level, so its
+own H1 becomes an H2 beneath this page's title instead of a second H1 competing with
+it. Without the shift the page opens with "Data" immediately followed by an equally
+sized "Data — NASA IMS bearing vibration"; dropping the frontmatter title instead
+leaves an empty title element and a lowercase browser tab. The shift is the only one
+of the three that produces a correct heading hierarchy without editing the source
+file, which has to keep its H1 to read properly on GitHub.
+-->
+
+{{< include data/README.md >}}

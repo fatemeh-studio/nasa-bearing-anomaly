@@ -1,0 +1,101 @@
+---
+title: "What the warning is worth"
+subtitle: "Why lead time is not multiplied by an hourly rate"
+---
+
+The tempting move is to take 79.5 hours of warning, multiply by a cost-per-hour of
+downtime, and report the product as money saved. That number would be wrong, and
+wrong in a way that inflates it.
+
+## The intuitive calculation answers the wrong question
+
+79.5 hours × €15,000/h = €1.19 m looks like a result. It prices **79.5 hours during
+which the machine was still running normally**. Nothing was lost in those hours and
+nothing was saved by them.
+
+Warning does not save the warning period. It converts an **unplanned** stoppage into a
+**planned** one: the part is ordered before it is needed, the repair happens in a
+scheduled window, and nobody diagnoses a failure under pressure with the line down. So
+the saving is the *difference between two stoppage lengths* — and it is realised only
+if the warning arrives early enough to act on. A two-hour warning buys nothing when
+the spare takes a day to arrive.
+
+## The model, stated as assumptions
+
+Every input below is an assumption, not a measurement. They describe one machine on
+one line in a mid-size plant, and they are deliberately far below the whole-facility
+figures further down.
+
+| Input | Default | What it means |
+|---|---|---|
+| `hourly_cost_eur` | €15,000 | Cost of one hour of stoppage on the affected line |
+| `unplanned_hours` | 24 h | Detect, diagnose, source the part, repair — unplanned |
+| `planned_hours` | 4 h | The same repair in a scheduled window |
+| `required_notice_hours` | 24 h | Warning below this buys nothing at all |
+
+$$
+\text{saving} = (\text{unplanned} - \text{planned}) \times \text{hourly cost}
+\qquad\text{if lead time} \geq \text{required notice, else } 0
+$$
+
+Note what the lead time does **not** do in that expression: it does not scale the
+answer. It acts as a threshold. Past the notice period the saving is flat, because
+what is being bought is the *conversion* of the stoppage, and 80 hours of warning
+converts it no more thoroughly than 30 does.
+
+## Result across a range of rates
+
+The hourly rate is the least defensible number in the chain, so it is varied rather
+than asserted. All three measured lead times clear the 24-hour notice threshold, so
+all three are actionable under this model:
+
+| Hourly rate | Saving per avoided unplanned stoppage | Test 1 (79.5 h) | Test 2 (53.7 h) | Test 3 (57.0 h) |
+|---|---|---|---|---|
+| €5,000 | €100,000 | actionable | actionable | actionable |
+| €10,000 | €200,000 | actionable | actionable | actionable |
+| €15,000 | €300,000 | actionable | actionable | actionable |
+| €20,000 | €400,000 | actionable | actionable | actionable |
+
+From `results/reports/business_cost_sensitivity.csv`. The saving column depends only
+on the rate and the 20-hour stoppage difference, which is exactly the point: the
+euro figure is driven by assumptions about the plant, not by the detector. **What the
+analysis contributes is the lead time and its false-alarm cost; the money is a frame
+around it.**
+
+## The sourced benchmark, and why it is not the answer
+
+The only citable published figure found for this is Senseye Predictive Maintenance,
+*[The True Cost of Downtime 2022](https://blog.siemens.com/2023/04/the-true-cost-of-downtime/)*
+(Siemens), compiled across 72 major multinational industrial and manufacturing firms:
+
+| Setting | Cost per hour of unplanned downtime |
+|---|---|
+| Large industrial facility | USD 532,000 |
+| Automotive plant | USD 1,300,000 |
+| Fast-moving consumer goods plant | USD 36,000 |
+
+**Scope matters more than the magnitude.** Every one of those is the cost of stopping
+an **entire facility**. A single bearing on a single machine is not a plant, so these
+are an upper bound and an order-of-magnitude sanity check — not a rate to apply to
+this dataset. They are recorded so that any euro figure here can be read against a
+sourced benchmark instead of an asserted one.
+
+No figure on this page is attributed to a named company's operations, because no such
+attribution could be sourced.
+
+## What would make this a real business case
+
+Honestly: plant figures. Every number above that carries a euro sign is an assumption
+with a plausible range, and the analysis cannot narrow any of them. What it *can*
+supply, and does, is the part a plant cannot get from its own accounts —
+
+- **how much warning** the vibration data actually affords: 53.7 to 79.5 hours;
+- **what that warning costs** in false alarms: 0 sustained alarms across 1,419
+  held-out healthy acquisitions, an upper bound of roughly 1 in 1,000 rather than a
+  measured zero;
+- **how stable it is**: Test 3 falls from 57 h to 26 h if the calibrated false-alarm
+  rate is tightened from 1% to 0.5%, while Tests 1 and 2 move by under an hour.
+
+Substituting real values for the four assumptions in the table above turns that into a
+number a maintenance budget can use. Until then, the sensitivity table is the honest
+form of the answer.

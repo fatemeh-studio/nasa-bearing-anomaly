@@ -1,0 +1,71 @@
+# Site configuration. Rendered locally and published to the gh-pages branch with
+# `quarto publish gh-pages` -- never from CI. Quarto renders .ipynb from the outputs
+# already stored in the notebook rather than executing it, and CI starts from a clean
+# clone with neither those outputs nor the 6.2 GB raw dataset, so there would be
+# nothing to render there. See data/README.md for the data layer.
+
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - methodology.qmd
+    - data.qmd
+    - business.qmd
+    - notebooks/*.ipynb
+    # data/README.md is included verbatim into data.qmd. Without this exclusion
+    # Quarto would also render it as a second, standalone page carrying the same
+    # content at a different URL.
+    - "!data/README.md"
+    - "!README.md"
+
+website:
+  title: "NASA IMS Bearing Anomaly Detection"
+  description: >-
+    Physics-informed unsupervised anomaly detection on the NASA IMS bearing
+    run-to-failure dataset, with failure lead time paired with its false-alarm rate.
+  site-url: https://fatemeh-studio.github.io/nasa-bearing-anomaly/
+  repo-url: https://github.com/fatemeh-studio/nasa-bearing-anomaly
+  repo-actions: [source, issue]
+  navbar:
+    left:
+      - text: Overview
+        href: index.qmd
+      - text: Method
+        href: methodology.qmd
+      - text: Data
+        href: data.qmd
+      - text: What it is worth
+        href: business.qmd
+      - text: Notebooks
+        menu:
+          - notebooks/01_data_exploration.ipynb
+          - notebooks/02_feature_engineering.ipynb
+          - notebooks/03_anomaly_detection.ipynb
+          - notebooks/04_results_visualization.ipynb
+    right:
+      - icon: github
+        href: https://github.com/fatemeh-studio/nasa-bearing-anomaly
+        aria-label: Source on GitHub
+
+format:
+  html:
+    # Dark, deliberately. Every figure in this project is drawn on #0d1117 by
+    # plotting.py's STYLE, and framing dark figures on a white page puts a hard
+    # rectangle around each one. A light/dark toggle would do the same in half its
+    # states, so the site commits to the theme the figures were made for.
+    theme: darkly
+    toc: true
+    toc-depth: 3
+    # The code is available but not in the reader's way: this site exists to show
+    # the reasoning, and the repository is one click away in the navbar.
+    code-fold: true
+    code-tools: true
+    code-overflow: wrap
+    fig-responsive: true
+
+execute:
+  # Caches documents Quarto executes. It does NOT cover the notebooks -- Quarto does
+  # not execute .ipynb, it reads their stored outputs -- so this is a speed setting
+  # for the .qmd pages only, and _freeze/ is gitignored.
+  freeze: auto

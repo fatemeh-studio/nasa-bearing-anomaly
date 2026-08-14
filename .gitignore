@@ -81,6 +81,13 @@ results/reports/*_results.csv
 /.quarto/
 /_freeze/
 
+# Quarto writes a .quarto_ipynb beside each notebook it renders, as the
+# intermediate it hands to pandoc. `quarto render` appends this rule itself if it
+# is absent; it is written here explicitly so the pattern sits with the other
+# build artefacts and carries its reason, rather than being appended unexplained
+# after the secrets section.
+**/*.quarto_ipynb
+
 # -----------------------------------------------------------------------------
 #  Python
 # -----------------------------------------------------------------------------
