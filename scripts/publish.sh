@@ -85,7 +85,22 @@ if [[ "$DRY" -eq 1 ]]; then
 fi
 
 step "quarto publish gh-pages"
-quarto publish gh-pages --no-prompt
+
+# The first publish has to be interactive. Quarto needs to confirm creating the
+# gh-pages branch and write _publish.yml recording the target; --no-prompt makes it
+# refuse rather than ask, and the error it prints ("use first `quarto publish
+# gh-pages` locally") describes the wrong cause. Once _publish.yml exists and the
+# remote branch is there, every later publish is non-interactive.
+if [[ -f _publish.yml ]] && git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+    quarto publish gh-pages --no-prompt
+else
+    echo "   First publish for this repository, so this step is interactive."
+    echo "   Answering the prompt creates the gh-pages branch and writes"
+    echo "   _publish.yml. Commit that file afterwards -- it is configuration,"
+    echo "   not build output. Later runs need no prompt."
+    echo
+    quarto publish gh-pages
+fi
 
 cat <<'DONE'
 
