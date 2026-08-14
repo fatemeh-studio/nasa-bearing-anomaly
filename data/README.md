@@ -19,16 +19,67 @@ download. You need `raw/` only to regenerate those tables.
 gitignored and stays that way: one of them is published by Elsevier and may not be
 redistributed. The papers are cited at the end of this file, not shipped.
 
-## Download
+## Source and retrieval
 
-Direct (PHM Society mirror — reliable):
-
-    https://phm-datasets.s3.amazonaws.com/NASA/4.+Bearings.zip
+| | |
+| --- | --- |
+| Produced by | Center for Intelligent Maintenance Systems (IMS), University of Cincinnati, with Rexnord Technical Services |
+| Distributed by | NASA Ames Prognostics Center of Excellence (PCoE) data repository |
+| Dataset name | "Bearing Data Set" |
+| Archive | `4. Bearings.zip` |
+| Retrieved | 2026-07-15, from the PHM Society mirror |
+| Extracted size | **6.2 GB** — 2.4 GB test 1, 523 MB test 2, 3.3 GB test 3 |
+| File timestamps as shipped | 2020-05-16 throughout, which is the mirror's packaging date and not the acquisition date. The acquisition times are encoded in the filenames instead |
 
 Landing pages:
 
 - NASA PCoE: <https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/>
 - PHM Society mirror: <https://data.phmsociety.org/nasa/>
+
+Kaggle also hosts a copy. Cite the source above rather than the mirror — Kaggle did
+not originate this dataset, and citing it would credit a redistributor.
+
+## Licence and terms
+
+**No licence file ships with the archive.** NASA PCoE distributes the data for
+research use and asks that publications acknowledge both the repository and the data
+donors; that request is met in the Citation section below and in the project README.
+
+What this repository redistributes is **derived** data, never the source archive.
+`data/processed/` holds six summary statistics per channel per one-second
+acquisition — 27 to 51 numbers standing in for 20,480 samples per channel — which is
+an aggregate, not a reconstructable copy of the waveform. The raw archive is
+gitignored and is not in the history.
+
+`data/docs/` is gitignored for a stricter reason: it holds Qiu et al. (2006),
+published by Elsevier and not redistributable. Those papers are cited, never shipped.
+
+*This section records what was done and the reasoning. It is not a legal
+determination, and a reuser with different needs should check the terms at source.*
+
+## Fetch command
+
+Only needed to regenerate the processed tables. Run from the repository root:
+
+```bash
+mkdir -p data/raw && cd data/raw
+curl -L -o bearings.zip "https://phm-datasets.s3.amazonaws.com/NASA/4.+Bearings.zip"
+unzip bearings.zip && rm bearings.zip
+
+# Rename to the folder names the loader expects. Note the third one: the Set 3 data
+# is in a nested subfolder, NOT directly in 3rd_test/ -- see "Set 3 discrepancy".
+mv 1st_test test1
+mv 2nd_test test2
+mv 3rd_test/4th_test/txt test3
+```
+
+Verify the counts before running anything downstream. A wrong count here is the one
+error that propagates silently through every later stage:
+
+```bash
+for t in 1 2 3; do printf "test%s: %s files\n" "$t" "$(ls data/raw/test$t | wc -l)"; done
+# expect  test1: 2156   test2: 984   test3: 6324
+```
 
 ## Expected layout
 
@@ -56,6 +107,50 @@ Failure at the end of each test (per the IMS documentation):
 | 1    | 2,156 | 8        | Bearing 3 inner race + Bearing 4 roller element |
 | 2    |   984 | 4        | Bearing 1 outer race                            |
 | 3    | 6,324 | 4        | Bearing 3 outer race                            |
+
+## Bearing geometry and defect frequencies
+
+The rig runs four Rexnord ZA-2115 double-row bearings. Geometry as published in
+Qiu et al. (2006):
+
+| Symbol | Quantity | Value |
+| ------ | -------- | ----- |
+| `D` | pitch diameter | 2.815 in |
+| `d` | ball diameter | 0.331 in |
+| `n` | balls per row | 16 |
+| `α` | contact angle | 15.17° |
+| | shaft speed | 2,000 rpm = **33.333 Hz** |
+
+Diameters are given in inches, but the kinematics use only the dimensionless ratio
+`d/D`, so the unit cancels — provided both diameters carry the same one.
+
+A rolling-element bearing generates a distinct repetition rate for each defect
+location, because a defect is struck once per pass of a rolling element. Those rates
+follow from the geometry alone (Harris, 2001) and are what makes the fault
+*locatable* rather than merely detectable — energy appearing at 236 Hz and its
+harmonics says outer race, not "something is wrong":
+
+| Frequency | Name | Defect it indicates | Value |
+| --------- | ---- | ------------------- | ----- |
+| BPFO | ball pass frequency, outer race | outer-race spall | **236.403 Hz** |
+| BPFI | ball pass frequency, inner race | inner-race spall | **296.930 Hz** |
+| BSF  | ball spin frequency | rolling-element defect | **139.917 Hz** |
+| FTF  | fundamental train frequency | cage damage | **14.775 Hz** |
+
+All four are well inside the 10 kHz Nyquist limit of the 20 kHz sampling rate, so no
+defect frequency is aliased.
+
+Given the failure modes above, **BPFO carries the signal in Tests 2 and 3** and
+BPFI in Test 1, with BSF relevant only to Test 1's Bearing 4 roller-element defect.
+No run in this dataset fails at the cage, so FTF is never the diagnostic frequency
+here.
+
+*Provenance: `compute_defect_frequencies(BEARING_PARAMS)` in
+`src/nasa_bearing_anomaly/physics.py`, with the geometry from `BEARING_PARAMS` in
+`src/nasa_bearing_anomaly/config.py`, computed 2026-08-14. `tests/test_physics.py`
+pins the ordering (BPFI > BPFO, FTF lowest) and BPFO to the 220–250 Hz band; the
+geometry constants themselves are not asserted by any test, so they are only as
+good as the Qiu et al. citation.*
 
 ## `data/processed/` — the committed summary tables
 
@@ -189,6 +284,32 @@ Normal (file 4,448) to Suspect (file 6,093, 2004-04-16) to confirmed outer-race
 failure (file 6,323, 2004-04-18). The `4th_test` folder naming is also noted by
 Sahoo & Mohanty (2021). Neither source explains *why* the folder is named or
 counted as it is; only that the shipped data runs to April 18 with 6,324 files.
+
+## Provenance chain
+
+Stages hand off through files, so any one can be re-run alone and its output
+inspected:
+
+    data/raw/test{N}/                       6.2 GB, gitignored, 20,480 samples/file
+      -> loading.py                         one row per file, 6 statistics per channel
+    data/processed/test{N}_raw.csv          COMMITTED — a fresh clone starts here
+      -> features.py                        rolling windows (10/50), first differences
+    data/processed/test{N}_features.csv     gitignored; regenerates in seconds
+      -> detection.py                       StandardScaler -> PCA -> Isolation Forest
+    results/reports/test{N}_{method}_results.csv   gitignored, 1.6–10.2 MB each
+    results/reports/business_summary.csv    COMMITTED — the published numbers
+    results/figures/, figures/headline/     COMMITTED — the published figures
+
+**`business.py` is the one deliberate exception to the file-handoff pattern.**
+`run_business` re-runs detection in memory rather than reading
+`test{N}_{method}_results.csv`, because those scored frames are gitignored — reading
+them would make every published number depend on a file a fresh clone does not have.
+The scored frames exist only to pass data from notebook 03 to notebook 04, which
+recreates them when absent.
+
+The notebooks run the same chain interactively: `01` explores `*_raw.csv`, `02`
+builds `*_features.csv`, `03` scores it and writes the scored frames, `04` produces
+the figures and the business numbers. Only the first arrow needs `data/raw/`.
 
 ## Citation
 
