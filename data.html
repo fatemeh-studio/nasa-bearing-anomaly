@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Data – NASA IMS Bearing Anomaly Detection</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b85bc7c33db8c58e0ec93c3465666fed.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-d4efa1c2d0bb63bc82632f85e774b19d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">NASA IMS Bearing Anomaly Detection</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Overview</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./methodology.html"> 
+<span class="menu-text">Method</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./data.html" aria-current="page"> 
+<span class="menu-text">Data</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./business.html"> 
+<span class="menu-text">What it is worth</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-notebooks" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Notebooks</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-notebooks">    
+        <li>
+    <a class="dropdown-item" href="./notebooks/01_data_exploration.html">
+ <span class="dropdown-text">Notebook 01 — Data Exploration</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./notebooks/02_feature_engineering.html">
+ <span class="dropdown-text">Notebook 02 — Feature Engineering</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./notebooks/03_anomaly_detection.html">
+ <span class="dropdown-text">Notebook 03 — Anomaly Detection</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./notebooks/04_results_visualization.html">
+ <span class="dropdown-text">Notebook 04 — Results and Figures</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/fatemeh-studio/nasa-bearing-anomaly"> <i class="bi bi-github" role="img" aria-label="Source on GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#data-nasa-ims-bearing-vibration" id="toc-data-nasa-ims-bearing-vibration" class="nav-link active" data-scroll-target="#data-nasa-ims-bearing-vibration">Data — NASA IMS bearing vibration</a>
+  <ul class="collapse">
+  <li><a href="#source-and-retrieval" id="toc-source-and-retrieval" class="nav-link" data-scroll-target="#source-and-retrieval">Source and retrieval</a></li>
+  <li><a href="#licence-and-terms" id="toc-licence-and-terms" class="nav-link" data-scroll-target="#licence-and-terms">Licence and terms</a></li>
+  <li><a href="#fetch-command" id="toc-fetch-command" class="nav-link" data-scroll-target="#fetch-command">Fetch command</a></li>
+  <li><a href="#expected-layout" id="toc-expected-layout" class="nav-link" data-scroll-target="#expected-layout">Expected layout</a></li>
+  <li><a href="#bearing-geometry-and-defect-frequencies" id="toc-bearing-geometry-and-defect-frequencies" class="nav-link" data-scroll-target="#bearing-geometry-and-defect-frequencies">Bearing geometry and defect frequencies</a></li>
+  <li><a href="#dataprocessed-the-committed-summary-tables" id="toc-dataprocessed-the-committed-summary-tables" class="nav-link" data-scroll-target="#dataprocessed-the-committed-summary-tables"><code>data/processed/</code> — the committed summary tables</a></li>
+  <li><a href="#set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count" id="toc-set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count" class="nav-link" data-scroll-target="#set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count">Set 3 discrepancy (the <code>4th_test</code> folder and the 4,448 vs 6,324 file count)</a></li>
+  <li><a href="#the-post-shutdown-tail-is-a-different-length-in-each-test" id="toc-the-post-shutdown-tail-is-a-different-length-in-each-test" class="nav-link" data-scroll-target="#the-post-shutdown-tail-is-a-different-length-in-each-test">The post-shutdown tail is a different length in each test</a></li>
+  <li><a href="#provenance-chain" id="toc-provenance-chain" class="nav-link" data-scroll-target="#provenance-chain">Provenance chain</a></li>
+  <li><a href="#citation" id="toc-citation" class="nav-link" data-scroll-target="#citation">Citation</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/blob/main/data.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Data</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!--
+One include, deliberately. data/README.md is the single source of truth for every
+fact about the data, and it stays browsable on GitHub at its own path. Restating any
+of it here would create a second copy that drifts. The "!data/README.md" entry in
+_quarto.yml's render list stops Quarto also emitting it as a standalone page.
+
+shift-heading-level-by pushes the included file's headings down one level, so its
+own H1 becomes an H2 beneath this page's title instead of a second H1 competing with
+it. Without the shift the page opens with "Data" immediately followed by an equally
+sized "Data — NASA IMS bearing vibration"; dropping the frontmatter title instead
+leaves an empty title element and a lowercase browser tab. The shift is the only one
+of the three that produces a correct heading hierarchy without editing the source
+file, which has to keep its H1 to read properly on GitHub.
+-->
+<section id="data-nasa-ims-bearing-vibration" class="level2">
+<h2 class="anchored" data-anchor-id="data-nasa-ims-bearing-vibration">Data — NASA IMS bearing vibration</h2>
+<p>Everything this project knows about its data: where it comes from, what is and is not committed, what the processed tables contain, and one documented defect in the source archive. Nothing else in the repository should restate these facts; it should link here.</p>
+<pre><code>data/
+├── README.md      this file
+├── raw/           ~6.2 GB, gitignored — download instructions below
+├── processed/     three summary tables, committed on purpose
+└── docs/          reference PDFs, gitignored and never redistributed</code></pre>
+<p><strong>You do not need the raw data to run any of the four notebooks.</strong> The three tables in <code>data/processed/</code> are committed precisely so that a clone runs without a 6.2 GB download. You need <code>raw/</code> only to regenerate those tables.</p>
+<p><code>data/docs/</code> holds reference papers kept beside the code while working. It is gitignored and stays that way: one of them is published by Elsevier and may not be redistributed. The papers are cited at the end of this file, not shipped.</p>
+<section id="source-and-retrieval" class="level3">
+<h3 class="anchored" data-anchor-id="source-and-retrieval">Source and retrieval</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<tbody>
+<tr class="odd">
+<td>Produced by</td>
+<td>Center for Intelligent Maintenance Systems (IMS), University of Cincinnati, with Rexnord Technical Services</td>
+</tr>
+<tr class="even">
+<td>Distributed by</td>
+<td>NASA Ames Prognostics Center of Excellence (PCoE) data repository</td>
+</tr>
+<tr class="odd">
+<td>Dataset name</td>
+<td>“Bearing Data Set”</td>
+</tr>
+<tr class="even">
+<td>Archive</td>
+<td><code>4. Bearings.zip</code></td>
+</tr>
+<tr class="odd">
+<td>Retrieved</td>
+<td>2026-07-15, from the PHM Society mirror</td>
+</tr>
+<tr class="even">
+<td>Extracted size</td>
+<td><strong>6.2 GB</strong> — 2.4 GB test 1, 523 MB test 2, 3.3 GB test 3</td>
+</tr>
+<tr class="odd">
+<td>File timestamps as shipped</td>
+<td>2020-05-16 throughout, which is the mirror’s packaging date and not the acquisition date. The acquisition times are encoded in the filenames instead</td>
+</tr>
+</tbody>
+</table>
+<p>Landing pages:</p>
+<ul>
+<li>NASA PCoE: <a href="https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/" class="uri">https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/</a></li>
+<li>PHM Society mirror: <a href="https://data.phmsociety.org/nasa/" class="uri">https://data.phmsociety.org/nasa/</a></li>
+</ul>
+<p>Kaggle also hosts a copy. Cite the source above rather than the mirror — Kaggle did not originate this dataset, and citing it would credit a redistributor.</p>
+</section>
+<section id="licence-and-terms" class="level3">
+<h3 class="anchored" data-anchor-id="licence-and-terms">Licence and terms</h3>
+<p><strong>No licence file ships with the archive.</strong> NASA PCoE distributes the data for research use and asks that publications acknowledge both the repository and the data donors; that request is met in the Citation section below and in the project README.</p>
+<p>What this repository redistributes is <strong>derived</strong> data, never the source archive. <code>data/processed/</code> holds six summary statistics per channel per one-second acquisition — 27 to 51 numbers standing in for 20,480 samples per channel — which is an aggregate, not a reconstructable copy of the waveform. The raw archive is gitignored and is not in the history.</p>
+<p><code>data/docs/</code> is gitignored for a stricter reason: it holds Qiu et al.&nbsp;(2006), published by Elsevier and not redistributable. Those papers are cited, never shipped.</p>
+<p><em>This section records what was done and the reasoning. It is not a legal determination, and a reuser with different needs should check the terms at source.</em></p>
+</section>
+<section id="fetch-command" class="level3">
+<h3 class="anchored" data-anchor-id="fetch-command">Fetch command</h3>
+<p>Only needed to regenerate the processed tables. Run from the repository root:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> data/raw <span class="kw">&amp;&amp;</span> <span class="bu">cd</span> data/raw</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-L</span> <span class="at">-o</span> bearings.zip <span class="st">"https://phm-datasets.s3.amazonaws.com/NASA/4.+Bearings.zip"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">unzip</span> bearings.zip <span class="kw">&amp;&amp;</span> <span class="fu">rm</span> bearings.zip</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Rename to the folder names the loader expects. Note the third one: the Set 3 data</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># is in a nested subfolder, NOT directly in 3rd_test/ -- see "Set 3 discrepancy".</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> 1st_test test1</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> 2nd_test test2</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> 3rd_test/4th_test/txt test3</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Verify the counts before running anything downstream. A wrong count here is the one error that propagates silently through every later stage:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> 1 2 3<span class="kw">;</span> <span class="cf">do</span> <span class="bu">printf</span> <span class="st">"test%s: %s files\n"</span> <span class="st">"</span><span class="va">$t</span><span class="st">"</span> <span class="st">"</span><span class="va">$(</span><span class="fu">ls</span> data/raw/test<span class="va">$t</span> <span class="kw">|</span> <span class="fu">wc</span> <span class="at">-l</span><span class="va">)</span><span class="st">"</span><span class="kw">;</span> <span class="cf">done</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># expect  test1: 2156   test2: 984   test3: 6324</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="expected-layout" class="level3">
+<h3 class="anchored" data-anchor-id="expected-layout">Expected layout</h3>
+<p>The archive extracts to <code>1st_test/</code>, <code>2nd_test/</code>, <code>3rd_test/</code> and a documentation PDF. <strong>Note the nested folder</strong> (see “Set 3 discrepancy” below): the Set 3 data actually lives at <code>3rd_test/4th_test/txt/</code>, not directly in <code>3rd_test/</code>.</p>
+<p>Arrange the folders so the tree looks like:</p>
+<pre><code>data/raw/
+├── test1/   # 2,156 files, 8 channels (4 bearings x 2 accelerometers)
+├── test2/   #   984 files, 4 channels (1 per bearing)
+└── test3/   # 6,324 files, 4 channels (1 per bearing)
+             #   ^ from 3rd_test/4th_test/txt/ — see note below</code></pre>
+<p>Each file is a 1-second vibration snapshot: 20,480 points at a 20 kHz sampling rate (the effective rate is closer to 20.48 kHz). Rig: shaft at 2,000 RPM under a 6,000 lb radial load, four force-lubricated Rexnord ZA-2115 double-row bearings, run to failure.</p>
+<p>Failure at the end of each test (per the IMS documentation):</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 12%">
+<col style="width: 73%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Test</th>
+<th>Files</th>
+<th>Channels</th>
+<th>Failure at end of test</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>2,156</td>
+<td>8</td>
+<td>Bearing 3 inner race + Bearing 4 roller element</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>984</td>
+<td>4</td>
+<td>Bearing 1 outer race</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>6,324</td>
+<td>4</td>
+<td>Bearing 3 outer race</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bearing-geometry-and-defect-frequencies" class="level3">
+<h3 class="anchored" data-anchor-id="bearing-geometry-and-defect-frequencies">Bearing geometry and defect frequencies</h3>
+<p>The rig runs four Rexnord ZA-2115 double-row bearings. Geometry as published in Qiu et al.&nbsp;(2006):</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Quantity</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>D</code></td>
+<td>pitch diameter</td>
+<td>2.815 in</td>
+</tr>
+<tr class="even">
+<td><code>d</code></td>
+<td>ball diameter</td>
+<td>0.331 in</td>
+</tr>
+<tr class="odd">
+<td><code>n</code></td>
+<td>balls per row</td>
+<td>16</td>
+</tr>
+<tr class="even">
+<td><code>α</code></td>
+<td>contact angle</td>
+<td>15.17°</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>shaft speed</td>
+<td>2,000 rpm = <strong>33.333 Hz</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Diameters are given in inches, but the kinematics use only the dimensionless ratio <code>d/D</code>, so the unit cancels — provided both diameters carry the same one.</p>
+<p>A rolling-element bearing generates a distinct repetition rate for each defect location, because a defect is struck once per pass of a rolling element. Those rates follow from the geometry alone (Harris, 2001) and are what makes the fault <em>locatable</em> rather than merely detectable — energy appearing at 236 Hz and its harmonics says outer race, not “something is wrong”:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 24%">
+<col style="width: 10%">
+<col style="width: 51%">
+<col style="width: 13%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Frequency</th>
+<th>Name</th>
+<th>Defect it indicates</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>BPFO</td>
+<td>ball pass frequency, outer race</td>
+<td>outer-race spall</td>
+<td><strong>236.403 Hz</strong></td>
+</tr>
+<tr class="even">
+<td>BPFI</td>
+<td>ball pass frequency, inner race</td>
+<td>inner-race spall</td>
+<td><strong>296.930 Hz</strong></td>
+</tr>
+<tr class="odd">
+<td>BSF</td>
+<td>ball spin frequency</td>
+<td>rolling-element defect</td>
+<td><strong>139.917 Hz</strong></td>
+</tr>
+<tr class="even">
+<td>FTF</td>
+<td>fundamental train frequency</td>
+<td>cage damage</td>
+<td><strong>14.775 Hz</strong></td>
+</tr>
+</tbody>
+</table>
+<p>All four are well inside the 10 kHz Nyquist limit of the 20 kHz sampling rate, so no defect frequency is aliased.</p>
+<p>Given the failure modes above, <strong>BPFO carries the signal in Tests 2 and 3</strong> and BPFI in Test 1, with BSF relevant only to Test 1’s Bearing 4 roller-element defect. No run in this dataset fails at the cage, so FTF is never the diagnostic frequency here.</p>
+<p><em>Provenance: <code>compute_defect_frequencies(BEARING_PARAMS)</code> in <code>src/nasa_bearing_anomaly/physics.py</code>, with the geometry from <code>BEARING_PARAMS</code> in <code>src/nasa_bearing_anomaly/config.py</code>, computed 2026-08-14. <code>tests/test_physics.py</code> pins the ordering (BPFI &gt; BPFO, FTF lowest) and BPFO to the 220–250 Hz band; the geometry constants themselves are not asserted by any test, so they are only as good as the Qiu et al.&nbsp;citation.</em></p>
+</section>
+<section id="dataprocessed-the-committed-summary-tables" class="level3">
+<h3 class="anchored" data-anchor-id="dataprocessed-the-committed-summary-tables"><code>data/processed/</code> — the committed summary tables</h3>
+<p>Regenerate with <code>python -m nasa_bearing_anomaly.loading --test all</code>, which needs <code>raw/</code>. Each raw file — one second, 20,480 samples — collapses to <strong>one row</strong> of per-channel statistics, so the temporal ordering the whole analysis rests on is preserved while the 6.2 GB does not have to be.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Rows</th>
+<th>Columns</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>test1_raw.csv</code></td>
+<td>2,156</td>
+<td>51</td>
+<td>1.8 MB</td>
+</tr>
+<tr class="even">
+<td><code>test2_raw.csv</code></td>
+<td>984</td>
+<td>27</td>
+<td>452 kB</td>
+</tr>
+<tr class="odd">
+<td><code>test3_raw.csv</code></td>
+<td>6,324</td>
+<td>27</td>
+<td>2.9 MB</td>
+</tr>
+</tbody>
+</table>
+<p>Three index columns, then six statistics per channel named <code>{Bearing}_ch{N}_{stat}</code>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 46%">
+<col style="width: 53%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>file_index</code></td>
+<td>0-based position in the run. The table’s index, and the x-axis of every figure</td>
+</tr>
+<tr class="even">
+<td><code>timestamp</code></td>
+<td>parsed from the raw filename (<code>YYYY.MM.DD.HH.MM.SS</code>). Acquisitions are 10 minutes apart</td>
+</tr>
+<tr class="odd">
+<td><code>filename</code></td>
+<td>the raw file this row came from</td>
+</tr>
+<tr class="even">
+<td><code>_rms</code></td>
+<td>root mean square of the 20,480 samples, in g. The primary degradation indicator</td>
+</tr>
+<tr class="odd">
+<td><code>_mean</code></td>
+<td>arithmetic mean, in g. Near zero for a healthy AC-coupled accelerometer</td>
+</tr>
+<tr class="even">
+<td><code>_std</code></td>
+<td>standard deviation, in g</td>
+</tr>
+<tr class="odd">
+<td><code>_max</code></td>
+<td>maximum <strong>absolute</strong> amplitude, in g</td>
+</tr>
+<tr class="even">
+<td><code>_kurt</code></td>
+<td><strong>excess</strong> kurtosis — see the warning below</td>
+</tr>
+<tr class="odd">
+<td><code>_skew</code></td>
+<td>skewness, dimensionless</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>_kurt</code> is excess kurtosis, so Gaussian noise reads 0, not 3.</strong> The computation subtracts 3 (Fisher definition). This matters because the bearing-diagnostics literature usually quotes <em>non-excess</em> kurtosis, where healthy is 3, early fault 4–6 and severe fault above 10 — apply those numbers to this column and every threshold is 3 too high. Subtract 3 from any published threshold before using it here. Measured on Test 3, Bearing 3: <strong>healthy median 0.15</strong>, final 30 files median 3.17, maximum 16.74.</p>
+<p>Test 1 has eight channels and so 48 statistic columns; Tests 2 and 3 have four channels and 24. There is no <code>_ch2</code> column for Tests 2 and 3, because there was no second accelerometer.</p>
+</section>
+<section id="set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count" class="level3">
+<h3 class="anchored" data-anchor-id="set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count">Set 3 discrepancy (the <code>4th_test</code> folder and the 4,448 vs 6,324 file count)</h3>
+<p>This dataset has a well-documented quirk in its third test that is easy to get wrong, so it is worth stating precisely.</p>
+<p><strong>What the official Readme says.</strong> The IMS “Readme Document for IMS Bearing Data” describes Set 3 as <strong>4,448 files</strong>, recorded from <strong>2004-03-04 09:27:46 to 2004-04-04 19:01:57</strong>, ending in an outer-race failure of Bearing 3.</p>
+<p><strong>What the distributed archive actually contains.</strong> Inside <code>3rd_test/</code> there is a nested folder <code>4th_test/txt/</code> holding <strong>6,324 files</strong>, recorded continuously at 10-minute intervals through to <strong>2004-04-18 02:42:55</strong> — roughly two weeks past the date the Readme reports. This is the real Set 3; there is no separate “Set 4” experiment, and no files are missing. The folder name and the Readme’s file count are simply inconsistent with the shipped data.</p>
+<p><strong>Why it matters.</strong> At file 4,448 (2004-04-04, the Readme’s cutoff) Bearing 3 is still healthy. The outer-race defect only develops and becomes unmistakable in the final ~230 files (2004-04-16 to 2004-04-18). Analyses that trust the Readme and stop at 4,448 files therefore <strong>miss the failure entirely</strong> — the run looks like it ends in a healthy state. Using the full 6,324-file series is required to capture the degradation this project is built to detect.</p>
+<p><strong>This project uses the full 6,324-file series as <code>test3/</code>.</strong></p>
+<p><strong>Measured confirmation.</strong> Per-bearing RMS computed from the raw files (channel N = Bearing N). Baseline is the median of the first 500 files, <strong>B3 = 0.0664</strong>:</p>
+<pre><code>File   Date / time      RMS[B1    B2    B3    B4]   B3 vs baseline
+   0   2004-03-04 09:27     0.080 0.097 0.066 0.055    1.0x  healthy
+4447   2004-04-04 19:01     0.074 0.077 0.070 0.055    1.1x  still healthy — the Readme's documented end
+6092   2004-04-16 12:12     0.077 0.084 0.085 0.064    1.3x  degradation begins
+6299   2004-04-17 22:42     0.121 0.159 0.297 0.161    4.5x
+6320   2004-04-18 02:12     0.138 0.207 0.454 0.254    6.8x
+6321   2004-04-18 02:22     0.147 0.251 0.590 0.280    8.9x
+6322   2004-04-18 02:32     0.154 0.257 0.759 0.282   11.4x  maximum
+6323   2004-04-18 02:42     0.002 0.003 0.004 0.002    0.1x  post-shutdown (rig stopped)</code></pre>
+<p><strong>The failure accelerates sharply in its final half hour.</strong> Bearing 3 reaches about 4.5x baseline by 19:30 on 2004-04-17 and holds near there for some hours, then more than doubles across the last three acquisitions — 0.454, 0.590, 0.759 — before the rig stops. Only 29 of the 6,324 files exceed 0.297. <strong>Quoting 0.297 as “the failure value” understates the peak by a factor of 2.6 and misplaces the failure point by roughly four hours</strong>, which matters directly for any lead-time calculation that must anchor on one.</p>
+<p>At the Readme’s 4,448-file cutoff (2004-04-04 19:01) Bearing 3 is still at 1.1x baseline — the failure is entirely contained in the files beyond the documented range. The other three bearings rise too, almost all of it in those same final acquisitions: B4 reaches 5.1x and B2 2.6x. Through 22:42 their movement is mild and consistent with sympathetic vibration through the shaft; across the last three files it is not. The final snapshot reads near-zero on every channel because the rig had already stopped (it auto-terminates on a debris-triggered switch), so the post-shutdown tail must be excluded when computing failure lead-time.</p>
+<p><em>Provenance: every figure above is read from <code>data/processed/test3_raw.csv</code>, columns <code>Bearing{N}_ch1_rms</code>, regenerated 2026-08-12 with <code>python -m nasa_bearing_anomaly.loading --test 3</code>. File numbers are the <code>file_index</code> column; dates are parsed from the raw filenames. All five rows present before 2026-08-12 reproduced exactly; the three tail rows and the ratio column are new.</em></p>
+</section>
+<section id="the-post-shutdown-tail-is-a-different-length-in-each-test" class="level3">
+<h3 class="anchored" data-anchor-id="the-post-shutdown-tail-is-a-different-length-in-each-test">The post-shutdown tail is a different length in each test</h3>
+<p>Measured 2026-08-14. Earlier notes in this project — and the usual reading of the IMS documentation — described this as “the final file of each run”. That is wrong in both directions, and it matters because the tail is what a lead-time calculation anchors against.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Test</th>
+<th>Trailing post-shutdown files</th>
+<th>Last live file</th>
+<th>Its RMS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>0</strong></td>
+<td>2155</td>
+<td>0.594 — the run’s <strong>peak</strong>, 3.7x baseline</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>2</strong> (982, 983)</td>
+<td>981</td>
+<td>0.484</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>1 (6323)</td>
+<td>6322</td>
+<td>0.759 — 11.4x baseline</td>
+</tr>
+</tbody>
+</table>
+<p>Test 1 never went quiet: it ends on its highest reading, so dropping one file there discards the failure itself. Test 2 has two dead acquisitions, so dropping only one leaves the analysis anchored on a stopped rig reading 0.002.</p>
+<p>Because of this, <code>business.py</code> <strong>measures</strong> the tail rather than assuming its length: a file counts as post-shutdown when <em>every</em> bearing’s RMS falls below 0.2x the healthy baseline. Judging it on the failed bearing alone would be wrong — one bearing can fall quiet through damage, but all four go quiet only when the shaft stops.</p>
+<p><em>Provenance: <code>find_shutdown_tail</code> in <code>src/nasa_bearing_anomaly/business.py</code>, read from the three <code>data/processed/test{N}_raw.csv</code> tables, columns <code>Bearing{N}_ch1_rms</code>.</em></p>
+<p>This discrepancy is documented in the peer-reviewed literature — see Ben Yagoub &amp; Ziani (2025), §3.2 and Table 10, which reports Bearing 3 transitioning from Normal (file 4,448) to Suspect (file 6,093, 2004-04-16) to confirmed outer-race failure (file 6,323, 2004-04-18). The <code>4th_test</code> folder naming is also noted by Sahoo &amp; Mohanty (2021). Neither source explains <em>why</em> the folder is named or counted as it is; only that the shipped data runs to April 18 with 6,324 files.</p>
+</section>
+<section id="provenance-chain" class="level3">
+<h3 class="anchored" data-anchor-id="provenance-chain">Provenance chain</h3>
+<p>Stages hand off through files, so any one can be re-run alone and its output inspected:</p>
+<pre><code>data/raw/test{N}/                       6.2 GB, gitignored, 20,480 samples/file
+  -&gt; loading.py                         one row per file, 6 statistics per channel
+data/processed/test{N}_raw.csv          COMMITTED — a fresh clone starts here
+  -&gt; features.py                        rolling windows (10/50), first differences
+data/processed/test{N}_features.csv     gitignored; regenerates in seconds
+  -&gt; detection.py                       StandardScaler -&gt; PCA -&gt; Isolation Forest
+results/reports/test{N}_{method}_results.csv   gitignored, 1.6–10.2 MB each
+results/reports/business_summary.csv    COMMITTED — the published numbers
+results/figures/, figures/headline/     COMMITTED — the published figures</code></pre>
+<p><strong><code>business.py</code> is the one deliberate exception to the file-handoff pattern.</strong> <code>run_business</code> re-runs detection in memory rather than reading <code>test{N}_{method}_results.csv</code>, because those scored frames are gitignored — reading them would make every published number depend on a file a fresh clone does not have. The scored frames exist only to pass data from notebook 03 to notebook 04, which recreates them when absent.</p>
+<p>The notebooks run the same chain interactively: <code>01</code> explores <code>*_raw.csv</code>, <code>02</code> builds <code>*_features.csv</code>, <code>03</code> scores it and writes the scored frames, <code>04</code> produces the figures and the business numbers. Only the first arrow needs <code>data/raw/</code>.</p>
+</section>
+<section id="citation" class="level3">
+<h3 class="anchored" data-anchor-id="citation">Citation</h3>
+<p>Dataset:</p>
+<pre><code>J. Lee, H. Qiu, G. Yu, J. Lin, and Rexnord Technical Services (2007).
+IMS, University of Cincinnati. "Bearing Data Set", NASA Ames Prognostics
+Data Repository, NASA Ames Research Center, Moffett Field, CA.</code></pre>
+<p>The repository asks that publications acknowledge both the repository and the data donors.</p>
+<p>References documenting the Set 3 discrepancy:</p>
+<pre><code>A. Ben Yagoub and R. Ziani (2025). "Bearing fault prognosis based on Cyclical
+Remaining Useful Life (CRUL)." Comptes Rendus. Mécanique 353, pp. 1477–1495.
+https://doi.org/10.5802/crmeca.332
+
+B. Sahoo and A. R. Mohanty (2021). "Multiclass Bearing Fault Classification
+Using Features Learned by a Deep Neural Network." International Congress and
+Workshop on Industrial AI, Springer, pp. 405–414.</code></pre>
+<p>Primary reference for the test rig and failure mechanism:</p>
+<pre><code>H. Qiu, J. Lee, J. Lin, and G. Yu (2006). "Wavelet filter-based weak signature
+detection method and its application on rolling element bearing prognostics."
+Journal of Sound and Vibration 289 (4–5), pp. 1066–1090.</code></pre>
+
+
+<!-- -->
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const cellDetails = window.document.querySelectorAll(".cell details.code-fold");
+        for (let i=0; i<cellDetails.length; i++) {
+          const details = cellDetails[i];
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell div.sourceCode.cell-code");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/fatemeh-studio\.github\.io\/nasa-bearing-anomaly\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Data"</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="an">shift-heading-level-by:</span><span class="co"> 1</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">&lt;!--</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">One include, deliberately. data/README.md is the single source of truth for every</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">fact about the data, and it stays browsable on GitHub at its own path. Restating any</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">of it here would create a second copy that drifts. The "!data/README.md" entry in</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">_quarto.yml's render list stops Quarto also emitting it as a standalone page.</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">shift-heading-level-by pushes the included file's headings down one level, so its</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">own H1 becomes an H2 beneath this page's title instead of a second H1 competing with</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">it. Without the shift the page opens with "Data" immediately followed by an equally</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">sized "Data — NASA IMS bearing vibration"; dropping the frontmatter title instead</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">leaves an empty title element and a lowercase browser tab. The shift is the only one</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">of the three that produces a correct heading hierarchy without editing the source</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">file, which has to keep its H1 to read properly on GitHub.</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">--&gt;</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>{{&lt; include data/README.md &gt;}}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/blob/main/data.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
