@@ -16,20 +16,22 @@ produce generic "vibration". Each rolling element strikes the defect once per pa
 and the pass rate follows from the geometry and shaft speed alone. Four rates matter,
 one per defect location:
 
-| Frequency | Struck by | Indicates | This rig |
-|---|---|---|---|
-| BPFO — ball pass frequency, outer race | each ball passing a fixed outer-race point | outer-race spall | 236.403 Hz |
-| BPFI — ball pass frequency, inner race | each ball passing a point on the rotating inner race | inner-race spall | 296.930 Hz |
-| BSF — ball spin frequency | a defect on a ball itself, once per rotation | rolling-element defect | 139.917 Hz |
-| FTF — fundamental train frequency | the cage rotating | cage damage | 14.775 Hz |
+| Frequency | Struck by | Indicates |
+|---|---|---|
+| BPFO — ball pass frequency, outer race | each ball passing a fixed outer-race point | outer-race spall |
+| BPFI — ball pass frequency, inner race | each ball passing a point on the rotating inner race | inner-race spall |
+| BSF — ball spin frequency | a defect on a ball itself, once per rotation | rolling-element defect |
+| FTF — fundamental train frequency | the cage rotating | cage damage |
 
-Geometry, derivation and provenance are in **[the data documentation](data.qmd)**;
-they are properties of the rig, not choices made here.
+**[The data documentation](data.qmd) carries the numbers**: rig geometry, the four
+frequencies it yields for this bearing, their provenance, and which one carries the signal
+in which test. They are properties of the rig rather than choices made here, so they live
+with the data and are stated once.
 
-This is what makes a fault *locatable* rather than merely detectable. Energy rising at
-236 Hz and its harmonics says **outer race** — it does not say "something is wrong".
-Every feature below exists to make that structure visible to a model that has no idea
-what a bearing is.
+This is what makes a fault *locatable* rather than merely detectable. Energy rising at the
+outer-race pass frequency and its harmonics says **outer race** — it does not say
+"something is wrong". Every feature below exists to make that structure visible to a model
+that has no idea what a bearing is.
 
 ## The features, and what each is for
 
