@@ -355,7 +355,7 @@ def enrich_processed(test_id: int) -> pd.DataFrame:
     # Save
     out_path = TEST_CONFIG[test_id]["output_file"].parent / f"test{test_id}_features.csv"
     df.to_csv(out_path)
-    print(f"✅ Saved enriched features: {out_path}  ({len(df)} rows, {len(df.columns)} columns)")
+    print(f"Saved enriched features: {out_path}  ({len(df)} rows, {len(df.columns)} columns)")
     return df
 
 
@@ -368,5 +368,5 @@ if __name__ == "__main__":
 
     tests = [1, 2, 3] if args.test == "all" else [int(args.test)]
     for t in tests:
-        print(f"\n🔬 Feature engineering for Test {t}...")
+        print(f"\nFeature engineering for Test {t}...")
         enrich_processed(t)

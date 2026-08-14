@@ -80,7 +80,7 @@ class BearingPlotter:
         if self.save_figures:
             path = self.fig_dir / f"{name}.png"
             fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=STYLE["bg_color"])
-            print(f"  💾 Saved: {path}")
+            print(f"  Saved: {path}")
 
     # ── Plot 1: RMS Overview ───────────────────────────────────────────────
 
@@ -325,7 +325,7 @@ class BearingPlotter:
     def plot_score_distribution(self, df: pd.DataFrame) -> plt.Figure:
         """Histogram of anomaly scores: normal vs anomaly distribution."""
         if "anomaly_score" not in df.columns:
-            print("  ⚠ No anomaly_score column found.")
+            print("  Warning: No anomaly_score column found.")
             return None
 
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -598,7 +598,7 @@ def plot_all_tests(results: dict):
         Mapping of ``test_id`` to its scored DataFrame.
     """
     for test_id, df in results.items():
-        print(f"\n📊 Plotting Test {test_id}...")
+        print(f"\nPlotting Test {test_id}...")
         plotter = BearingPlotter(test_id=test_id, save_figures=True)
         plotter.plot_rms_overview(df)
         plotter.plot_anomaly_overlay(df)

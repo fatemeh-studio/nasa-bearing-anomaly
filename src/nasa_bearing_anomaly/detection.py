@@ -47,7 +47,7 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
     print(
-        "⚠ PyTorch not available. AutoencoderDetector disabled. Install: pip install -e '.[deep]'"
+        "Warning: PyTorch not available. AutoencoderDetector disabled. Install: pip install -e '.[deep]'"
     )
 
 
@@ -143,7 +143,7 @@ class IsolationForestDetector:
 
         self.model.fit(X_scaled)
         print(
-            f"  ✅ IsolationForest fitted on {n_healthy} healthy samples ({len(feature_cols)} features)"
+            f"  IsolationForest fitted on {n_healthy} healthy samples ({len(feature_cols)} features)"
         )
         return self
 
@@ -165,9 +165,7 @@ class IsolationForestDetector:
         df["is_anomaly"] = df["anomaly_label"] == -1
 
         n_anomalies = df["is_anomaly"].sum()
-        print(
-            f"  🔴 Anomalies detected: {n_anomalies}/{len(df)} ({100 * n_anomalies / len(df):.1f}%)"
-        )
+        print(f"  Anomalies detected: {n_anomalies}/{len(df)} ({100 * n_anomalies / len(df):.1f}%)")
 
         # The first flagged file is a detector diagnostic, not a lead time. With
         # contamination=c the model labels that fraction of its own training window
@@ -221,7 +219,7 @@ class IsolationForestDetector:
             },
             path / "isolation_forest.pkl",
         )
-        print(f"  💾 Model saved to {path / 'isolation_forest.pkl'}")
+        print(f"  Model saved to {path / 'isolation_forest.pkl'}")
 
     @classmethod
     def load(cls, path: Path) -> "IsolationForestDetector":
@@ -381,7 +379,7 @@ if TORCH_AVAILABLE:
             loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
             print(
-                f"  🤖 Training Autoencoder ({len(feature_cols)} features → {self.bottleneck_dim}D bottleneck)..."
+                f"  Training Autoencoder ({len(feature_cols)} features → {self.bottleneck_dim}D bottleneck)..."
             )
             self.model.train()
             for epoch in range(self.epochs):
@@ -407,7 +405,7 @@ if TORCH_AVAILABLE:
 
             self.threshold_ = float(np.percentile(train_errors, self.threshold_percentile))
             print(
-                f"  ✅ Threshold set at {self.threshold_percentile}th percentile: {self.threshold_:.6f}"
+                f"  Threshold set at {self.threshold_percentile}th percentile: {self.threshold_:.6f}"
             )
             return self
 
@@ -447,7 +445,7 @@ if TORCH_AVAILABLE:
 
             n_anomalies = df["is_anomaly"].sum()
             print(
-                f"  🔴 Anomalies detected: {n_anomalies}/{len(df)} ({100 * n_anomalies / len(df):.1f}%)"
+                f"  Anomalies detected: {n_anomalies}/{len(df)} ({100 * n_anomalies / len(df):.1f}%)"
             )
             return df
 
@@ -644,7 +642,7 @@ def run_pipeline(
     out_path = REPORTS_DIR / f"test{test_id}_{method}_results.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df_result.to_csv(out_path)
-    print(f"📊 Results saved: {out_path}")
+    print(f"Results saved: {out_path}")
 
     return df_result
 

@@ -129,7 +129,7 @@ def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.D
         )
 
     if verbose:
-        print(f"\n📂 Loading Test {test_id}: {len(files)} files from {raw_dir}")
+        print(f"\nLoading Test {test_id}: {len(files)} files from {raw_dir}")
         print(f"   Failed bearing: {config['failed_bearing']} ({config['failure_mode']})")
 
     records = []
@@ -175,7 +175,7 @@ def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.D
 
         except Exception as e:
             if verbose:
-                print(f"  ⚠ Skipped {filepath.name}: {e}")
+                print(f"  Warning: Skipped {filepath.name}: {e}")
             continue
 
     # Skips are reported per file above, but thousands of lines of progress bar
@@ -202,7 +202,7 @@ def save_processed(df: pd.DataFrame, test_id: int) -> Path:
     output_path = TEST_CONFIG[test_id]["output_file"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_path)
-    print(f"✅ Saved: {output_path}  ({len(df)} rows, {len(df.columns)} columns)")
+    print(f"Saved: {output_path}  ({len(df)} rows, {len(df.columns)} columns)")
     return output_path
 
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     tests = [1, 2, 3] if args.test == "all" else [int(args.test)]
 
     freqs = compute_defect_frequencies(BEARING_PARAMS)
-    print("\n⚙️  Bearing Defect Frequencies (IMS Test Rig):")
+    print("\nBearing Defect Frequencies (IMS Test Rig):")
     for name, hz in freqs.items():
         print(f"   {name}: {hz} Hz")
 
