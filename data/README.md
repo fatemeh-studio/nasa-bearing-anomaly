@@ -158,6 +158,31 @@ excluded when computing failure lead-time.
 column; dates are parsed from the raw filenames. All five rows present before
 2026-08-12 reproduced exactly; the three tail rows and the ratio column are new.*
 
+## The post-shutdown tail is a different length in each test
+
+Measured 2026-08-14. Earlier notes in this project — and the usual reading of the IMS
+documentation — described this as "the final file of each run". That is wrong in both
+directions, and it matters because the tail is what a lead-time calculation anchors
+against.
+
+| Test | Trailing post-shutdown files | Last live file | Its RMS |
+|---|---|---|---|
+| 1 | **0** | 2155 | 0.594 — the run's **peak**, 3.7x baseline |
+| 2 | **2** (982, 983) | 981 | 0.484 |
+| 3 | 1 (6323) | 6322 | 0.759 — 11.4x baseline |
+
+Test 1 never went quiet: it ends on its highest reading, so dropping one file there
+discards the failure itself. Test 2 has two dead acquisitions, so dropping only one
+leaves the analysis anchored on a stopped rig reading 0.002.
+
+Because of this, `business.py` **measures** the tail rather than assuming its length: a
+file counts as post-shutdown when *every* bearing's RMS falls below 0.2x the healthy
+baseline. Judging it on the failed bearing alone would be wrong — one bearing can fall
+quiet through damage, but all four go quiet only when the shaft stops.
+
+*Provenance: `find_shutdown_tail` in `src/nasa_bearing_anomaly/business.py`, read from
+the three `data/processed/test{N}_raw.csv` tables, columns `Bearing{N}_ch1_rms`.*
+
 This discrepancy is documented in the peer-reviewed literature — see Ben Yagoub &
 Ziani (2025), §3.2 and Table 10, which reports Bearing 3 transitioning from
 Normal (file 4,448) to Suspect (file 6,093, 2004-04-16) to confirmed outer-race
