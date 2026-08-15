@@ -152,6 +152,113 @@ class TestFrequencyDomainFeatures:
             assert key.startswith("Bearing3_ch1_"), f"Key missing prefix: {key}"
 
 
+# ── Band Resolution ────────────────────────────────────────────────────────
+# A band narrower than the PSD bin spacing is a point sample, not an integral.
+# Measured 2026-08-15: at the default window every defect harmonic resolved to
+# exactly one bin, which made bandwidth_hz inert below 10 Hz and left ftf_energy
+# with a healthy-to-faulty separation of 0.02 on real Test 3 data.
+
+
+class TestBandResolution:
+    def test_halfwidth_is_derived_from_resolution_not_hardcoded(self):
+        """A longer Welch window gives finer bins, so the band must narrow with it."""
+        coarse = FeatureExtractor(fs=FS, window_sec=0.1)
+        fine = FeatureExtractor(fs=FS, window_sec=0.4)
+        assert fine.freq_resolution_hz < coarse.freq_resolution_hz
+        assert fine.band_halfwidth_hz < coarse.band_halfwidth_hz
+
+    def test_default_band_spans_at_least_three_bins(self, extractor):
+        """Every emitted band must be an integral over >= 3 bins, at every harmonic."""
+        freqs, _ = extractor.welch_psd(np.zeros(20480))
+        half = extractor.band_halfwidth_hz
+        for name in extractor.band_energy_freqs:
+            f0 = extractor.defect_freqs[name]
+            for h in range(1, extractor.n_harmonics + 1):
+                centre = f0 * h
+                n_bins = int(((freqs >= centre - half) & (freqs <= centre + half)).sum())
+                assert n_bins >= 3, f"{name} harmonic {h} spans only {n_bins} bin(s)"
+
+    def test_ftf_band_reaches_dc_and_is_excluded(self, extractor):
+        """
+        FTF is 14.775 Hz. At a 10 Hz bin spacing no band around it can span three
+        bins without reaching DC, so it earns no feature. The exclusion is derived
+        from the resolution rule, not hardcoded -- this pins the reason, so that a
+        finer window would let FTF back in on its own.
+        """
+        assert not extractor.band_is_resolvable(extractor.defect_freqs["FTF_Hz"])
+        assert "FTF_Hz" not in extractor.band_energy_freqs
+        assert "ftf_energy" not in extractor.extract_frequency_domain(np.zeros(20480))
+
+    def test_the_other_three_are_resolvable(self, extractor):
+        for name in ("BPFO_Hz", "BPFI_Hz", "BSF_Hz"):
+            assert extractor.band_is_resolvable(extractor.defect_freqs[name]), name
+            assert name in extractor.band_energy_freqs
+
+
+# ── Envelope Features ──────────────────────────────────────────────────────
+# A bearing defect excites a high-frequency structural resonance, amplitude-
+# modulated at the defect rate. The defect rate is therefore carried by the
+# envelope of the resonance, not by a line in the raw spectrum.
+
+
+class TestEnvelopeFeatures:
+    @pytest.fixture
+    def modulated_signal(self):
+        """A 5 kHz carrier amplitude-modulated at 236 Hz -- the textbook fault model."""
+        t = np.linspace(0, 1, FS, endpoint=False)
+        carrier = np.sin(2 * np.pi * 5000 * t)
+        return (1.0 + 0.8 * np.sin(2 * np.pi * 236.0 * t)) * carrier
+
+    def test_modulation_is_absent_from_the_raw_spectrum(self, extractor, modulated_signal):
+        """
+        The premise for enveloping at all: amplitude modulation puts no energy at
+        the modulating frequency. It appears as sidebands either side of the
+        carrier, so a band-energy feature read off the raw PSD sees nothing at BPFO.
+        """
+        freqs, psd = extractor.welch_psd(modulated_signal)
+        low = psd[freqs < 1000]
+        assert psd[freqs < 1000].max() < 0.01 * psd.max(), (
+            "the raw spectrum should carry no low-frequency line"
+        )
+        assert freqs[np.argmax(psd)] > 4000, "raw spectrum should peak at the carrier"
+        assert low.size > 0
+
+    def test_envelope_recovers_the_modulation_frequency(self, extractor, modulated_signal):
+        """And this is what enveloping buys: the same 236 Hz becomes the dominant line."""
+        env = extractor.envelope(modulated_signal)
+        freqs, psd = extractor.envelope_spectrum(env)
+        peak_hz = freqs[np.argmax(psd)]
+        assert abs(peak_hz - 236.0) <= extractor.band_halfwidth_hz, (
+            f"envelope spectrum peaked at {peak_hz} Hz, expected ~236 Hz"
+        )
+
+    def test_envelope_of_a_constant_amplitude_tone_is_flat(self, extractor):
+        """No modulation, so no envelope variation. Edges are trimmed: filtfilt rings."""
+        t = np.linspace(0, 1, FS, endpoint=False)
+        env = extractor.envelope(np.sin(2 * np.pi * 5000 * t))
+        core = env[FS // 10 : -FS // 10]
+        assert core.std() / core.mean() < 0.1
+
+    def test_envelope_is_non_negative(self, extractor, faulty_signal):
+        assert (extractor.envelope(faulty_signal) >= 0).all()
+
+    def test_env_bpfo_energy_higher_in_faulty(self, extractor, healthy_signal, faulty_signal):
+        h = extractor.extract_envelope_domain(healthy_signal)
+        f = extractor.extract_envelope_domain(faulty_signal)
+        assert f["env_bpfo_energy"] > h["env_bpfo_energy"]
+
+    def test_extract_envelope_domain_no_nan(self, extractor, healthy_signal):
+        for k, v in extractor.extract_envelope_domain(healthy_signal).items():
+            assert np.isfinite(v), f"Feature '{k}' is not finite: {v}"
+
+    def test_envelope_keys_track_the_resolvable_frequencies(self, extractor, healthy_signal):
+        """Same resolution rule as the raw-PSD bands, so FTF is absent here too."""
+        keys = extractor.extract_envelope_domain(healthy_signal)
+        assert "env_ftf_energy" not in keys
+        for name in extractor.band_energy_freqs:
+            assert f"env_{name.replace('_Hz', '').lower()}_energy" in keys
+
+
 # ── Rolling & Change-Rate Features ────────────────────────────────────────
 
 

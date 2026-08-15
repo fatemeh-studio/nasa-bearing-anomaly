@@ -8,8 +8,13 @@ Two independent halves, and only the second is wired into the detection pipeline
 1. Time domain — RMS, excess kurtosis, skewness, peak, energy, and the crest, shape,
    impulse and clearance factors.
 2. Frequency domain, from a Welch power spectral density (PSD) estimate — band energy at
-   BPFO, BPFI, BSF and FTF harmonics, spectral entropy, and the ratio of energy above
-   5 kHz.
+   BPFO, BPFI and BSF harmonics, spectral entropy, and the ratio of energy above 5 kHz.
+   FTF gets no band: at the working resolution its band would reach DC. See
+   ``FeatureExtractor.band_is_resolvable``.
+3. Envelope domain — the same defect bands measured on the spectrum of the amplitude
+   envelope of the 2-10 kHz resonance region, which is where a bearing defect actually
+   makes itself visible. A defect modulates a resonance rather than radiating at its own
+   frequency, so the line is in the envelope, not the raw spectrum.
 
 Spectral entropy is **higher** in a healthy bearing, not lower: healthy noise is broadband
 and near-flat, which is maximum entropy, and a defect concentrates energy into BPFO
@@ -54,6 +59,9 @@ class FeatureExtractor:
         Window length in seconds for Welch PSD (default: 0.1)
     bearing_params : dict
         Physical bearing parameters for defect frequency computation
+    envelope_highpass_hz : float
+        Lower edge in Hz of the resonance band used for envelope analysis. The
+        upper edge is Nyquist, so at the dataset's 20 kHz this is a 2-10 kHz band.
     """
 
     def __init__(
@@ -61,6 +69,7 @@ class FeatureExtractor:
         fs: int = SAMPLING_RATE_HZ,
         window_sec: float = 0.1,
         bearing_params: dict = BEARING_PARAMS,
+        envelope_highpass_hz: float = 2000.0,
     ):
         self.fs = fs
         self.nperseg = int(window_sec * fs)
@@ -68,6 +77,56 @@ class FeatureExtractor:
 
         # Harmonic orders to check for each defect frequency
         self.n_harmonics = 3
+
+        # Welch bin spacing. Every band below is sized against it, because a band
+        # narrower than one bin is a point sample rather than an integral.
+        # Measured 2026-08-15: the previous fixed 5 Hz half-width resolved to
+        # exactly one bin at every harmonic of every defect frequency, which made
+        # the parameter inert below 10 Hz and left ftf_energy with a
+        # healthy-to-faulty separation of 0.02 on real Test 3 data.
+        self.freq_resolution_hz = fs / self.nperseg
+
+        # Three bins is the narrowest span that is still an integral, and it
+        # absorbs the shaft-speed drift a rig shows between acquisitions: the
+        # defect frequencies are proportional to shaft speed, so a fixed band has
+        # to be wide enough that the line does not walk out of it.
+        self.band_halfwidth_hz = 1.5 * self.freq_resolution_hz
+
+        # A band that would reach DC is dropped rather than clipped. Clipping
+        # would make it silently asymmetric and fold the DC bin -- which carries
+        # the signal mean -- into a feature meant to measure a defect line.
+        self.band_energy_freqs = tuple(
+            name
+            for name in ("BPFO_Hz", "BPFI_Hz", "BSF_Hz", "FTF_Hz")
+            if self.band_is_resolvable(self.defect_freqs[name])
+        )
+
+        # Fixed in advance rather than tuned: 2 kHz to Nyquist sits above every
+        # defect fundamental and its first ten harmonics, so the passband holds
+        # resonance-borne energy and none of the defect lines themselves.
+        # Choosing it from the faulty files instead would be selection on the
+        # outcome. A kurtogram would pick it per signal; that is the next step.
+        self.envelope_highpass_hz = envelope_highpass_hz
+
+    def band_is_resolvable(self, freq_hz: float) -> bool:
+        """
+        Whether a defect band centred on ``freq_hz`` clears DC.
+
+        The band is ``freq_hz`` plus and minus ``band_halfwidth_hz``. A centre
+        below the half-width puts 0 Hz inside the band, and the DC bin carries the
+        signal mean rather than defect energy.
+
+        Parameters
+        ----------
+        freq_hz : float
+            Band centre in Hz.
+
+        Returns
+        -------
+        bool
+            True when the band lies entirely above 0 Hz.
+        """
+        return freq_hz - self.band_halfwidth_hz > 0
 
     # ── Time-Domain Features ───────────────────────────────────────────────
 
@@ -219,7 +278,11 @@ class FeatureExtractor:
         return float(se / se_max if se_max > 0 else 0.0)
 
     def defect_freq_energy(
-        self, freqs: np.ndarray, psd: np.ndarray, freq_hz: float, bandwidth_hz: float = 5.0
+        self,
+        freqs: np.ndarray,
+        psd: np.ndarray,
+        freq_hz: float,
+        bandwidth_hz: float | None = None,
     ) -> float:
         """
         Compute energy around a defect frequency and its harmonics.
@@ -227,7 +290,26 @@ class FeatureExtractor:
         This is the key physics insight: fault energy concentrates at BPFO/BPFI/BSF
         rather than spreading, because a localised defect is struck at a rate fixed
         by geometry and shaft speed.
+
+        Parameters
+        ----------
+        freqs, psd : numpy.ndarray
+            Frequency grid in Hz and the power spectral density on it, from
+            ``welch_psd`` or ``envelope_spectrum``.
+        freq_hz : float
+            Defect frequency in Hz. Harmonics 1 to ``n_harmonics`` are summed.
+        bandwidth_hz : float, optional
+            Half-width of each band. Defaults to ``band_halfwidth_hz``, three PSD
+            bins wide. A value below ``freq_resolution_hz`` collapses the band to
+            a single bin and makes this a point sample rather than an integral.
+
+        Returns
+        -------
+        float
+            Summed power over the harmonic bands, in the PSD's units.
         """
+        if bandwidth_hz is None:
+            bandwidth_hz = self.band_halfwidth_hz
         total_energy = 0.0
         for harmonic in range(1, self.n_harmonics + 1):
             center = freq_hz * harmonic
@@ -250,20 +332,101 @@ class FeatureExtractor:
         return float(high / total if total > 1e-12 else 0.0)
 
     def extract_frequency_domain(self, x: np.ndarray) -> dict:
-        """Compute all frequency-domain features for one channel waveform."""
+        """
+        Compute all frequency-domain features for one channel waveform.
+
+        A band-energy column appears only for a defect frequency whose band clears
+        DC at the working resolution, so FTF is absent at the default window. See
+        ``band_is_resolvable``.
+        """
         freqs, psd = self.welch_psd(x)
 
         features = {
             "spectral_entropy": self.spectral_entropy(psd),
             "high_freq_ratio": self.high_freq_energy_ratio(freqs, psd),
-            "bpfo_energy": self.defect_freq_energy(freqs, psd, self.defect_freqs["BPFO_Hz"]),
-            "bpfi_energy": self.defect_freq_energy(freqs, psd, self.defect_freqs["BPFI_Hz"]),
-            "bsf_energy": self.defect_freq_energy(freqs, psd, self.defect_freqs["BSF_Hz"]),
-            "ftf_energy": self.defect_freq_energy(freqs, psd, self.defect_freqs["FTF_Hz"]),
             "dominant_freq_hz": float(freqs[np.argmax(psd)]),
             "psd_mean": float(np.mean(psd)),
             "psd_std": float(np.std(psd)),
         }
+        for name in self.band_energy_freqs:
+            key = f"{name.replace('_Hz', '').lower()}_energy"
+            features[key] = self.defect_freq_energy(freqs, psd, self.defect_freqs[name])
+
+        return features
+
+    # ── Envelope (High-Frequency Resonance) Features ───────────────────────
+
+    def envelope(self, x: np.ndarray) -> np.ndarray:
+        """
+        Amplitude envelope of the waveform's high-frequency content.
+
+        A localised defect does not radiate at the defect frequency. Each impact
+        rings a structural resonance in the kHz range, so the defect rate appears
+        as the *modulation* of that resonance and carries no line of its own in the
+        raw spectrum. Band-passing to the resonance region and taking the
+        analytic-signal magnitude moves that modulation to baseband, where it is a
+        line again. Standard practice for rolling-element bearings; see Randall and
+        Antoni (2011), *Mechanical Systems and Signal Processing* 25(2).
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Raw 1-D waveform.
+
+        Returns
+        -------
+        numpy.ndarray
+            Non-negative envelope, same length as ``x``. The first and last few
+            hundred samples ring from the zero-phase filter and should not be read
+            on their own.
+        """
+        sos = signal.butter(
+            4, self.envelope_highpass_hz, btype="highpass", fs=self.fs, output="sos"
+        )
+        return np.abs(signal.hilbert(signal.sosfiltfilt(sos, x)))
+
+    def envelope_spectrum(self, env: np.ndarray):
+        """
+        Welch power spectral density of an envelope, with its mean removed.
+
+        The envelope is strictly positive and so carries a large DC component. Left
+        in, it would dominate every band and swamp the defect line the spectrum
+        exists to expose.
+
+        Parameters
+        ----------
+        env : numpy.ndarray
+            Envelope, from ``envelope``.
+
+        Returns
+        -------
+        tuple of (numpy.ndarray, numpy.ndarray)
+            Frequencies in Hz, and the envelope power spectral density.
+        """
+        return signal.welch(
+            env - np.mean(env),
+            fs=self.fs,
+            nperseg=self.nperseg,
+            window="hann",
+            average="mean",
+        )
+
+    def extract_envelope_domain(self, x: np.ndarray) -> dict:
+        """
+        Defect-band energy measured on the envelope spectrum rather than the raw one.
+
+        Uses the same bands and the same resolvability rule as
+        ``extract_frequency_domain``, so a frequency excluded there is excluded
+        here. ``env_kurtosis`` is included separately because a periodic impact
+        train makes the envelope itself impulsive, wherever its energy sits.
+        """
+        env = self.envelope(x)
+        freqs, psd = self.envelope_spectrum(env)
+
+        features = {"env_kurtosis": self.kurtosis(env)}
+        for name in self.band_energy_freqs:
+            key = f"env_{name.replace('_Hz', '').lower()}_energy"
+            features[key] = self.defect_freq_energy(freqs, psd, self.defect_freqs[name])
 
         return features
 
@@ -271,12 +434,14 @@ class FeatureExtractor:
         """
         Extract every feature from a raw 1-D waveform.
 
-        Combines the time-domain and frequency-domain sets, prefixing each key
-        with ``channel_name`` so channels stay distinguishable once merged.
+        Combines the time-domain, frequency-domain and envelope sets, prefixing
+        each key with ``channel_name`` so channels stay distinguishable once
+        merged into one row per acquisition.
         """
         td = {f"{channel_name}_{k}": v for k, v in self.extract_time_domain(x).items()}
         fd = {f"{channel_name}_{k}": v for k, v in self.extract_frequency_domain(x).items()}
-        return {**td, **fd}
+        ed = {f"{channel_name}_{k}": v for k, v in self.extract_envelope_domain(x).items()}
+        return {**td, **fd, **ed}
 
 
 # ─── Rolling and Difference Features over the Summary Table ────────────────
