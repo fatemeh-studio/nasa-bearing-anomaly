@@ -15,43 +15,43 @@ The method, the data documentation and all four notebooks rendered with every fi
 ## Findings
 
 - **54–80 hours of warning before failure, with zero false alarms on held-out healthy
-  data** — 79.5 h, 53.7 h and 57.0 h for Tests 1–3, against 0 sustained alarms in
-  323 / 147 / 949 healthy files. Upper bounds of fewer than 1 in N, not measured zeros.
-  Test 3 is the least stable: tightening the calibrated false-alarm rate from 1% to 0.5%
-  moves it from 57 h to 26 h, while Tests 1 and 2 hold within 1 h across that range.
+  data** — 79.5 / 53.7 / 57.0 h for Tests 1–3, against 0 sustained alarms in 323 / 147 /
+  949 healthy files; upper bounds, not measured zeros. Test 3 is least stable: tightening
+  the calibrated rate from 1% to 0.5% moves it to 26 h, while Tests 1–2 hold within 1 h.
 - **The obvious "first alert" metric is meaningless here, measurably so.** All three runs
   flag file 0, because `IsolationForest(contamination=c)` labels that fraction of its own
-  *training* window anomalous by construction. Lead time is therefore read from a score
-  threshold calibrated on held-out healthy data, never from `is_anomaly`.
+  *training* window anomalous. Lead time comes from a calibrated score threshold instead.
 - **Test 3 holds 6,324 files, not the 4,448 the official IMS documentation lists.** The
-  remainder sits in an undocumented nested folder running to 2004-04-18. At file 4,448
-  the bearing is still healthy, so an analysis stopping at the documented cutoff misses
-  the failure entirely. RMS peaks at 0.759 on file 6,322 — **11.4× baseline**.
+  rest sits in an undocumented nested folder; at file 4,448 the bearing is still healthy,
+  so stopping at the documented cutoff misses the failure. RMS peaks at **11.4× baseline**.
 - **The post-shutdown tail is 0, 2 and 1 files for Tests 1–3**, not "the final file of
   each run" as the dataset documentation states. Test 1 ends on its RMS peak, so dropping
   one file there discards the failure itself.
+- **Physics-informed features name the right fault but do not detect it earlier.**
+  Defect-frequency energy on the envelope spectrum rises 354× on Test 3's failed bearing
+  against 8.8× on a healthy one, and names the failed surface in 3 of 4 documented cases.
+  In the detector it moves lead time by at most 1.5 h of 57.
 
 ## On the site
 
-- **[Method](https://fatemeh-studio.github.io/nasa-bearing-anomaly/methodology.html)** — features, the counterintuitive directions, rule selection
+- **[Method](https://fatemeh-studio.github.io/nasa-bearing-anomaly/methodology.html)** — features, the ablation, the counterintuitive directions, rule selection
 - **[Data](https://fatemeh-studio.github.io/nasa-bearing-anomaly/data.html)** — source, licence, column dictionary, the Set 3 discrepancy in full
 - **[Notebooks 01–04](https://fatemeh-studio.github.io/nasa-bearing-anomaly/notebooks/01_data_exploration.html)** — the analysis, with every figure
 
 ## What the warning is worth
 
 Lead time is **not** multiplied by an hourly rate — that prices hours during which the
-machine was still running. Warning converts an unplanned stoppage into a planned one, so the
-saving is the difference between the two, and only if the warning is long enough to order the
-part and book the window. Reported as a sensitivity table over stated assumptions —
+machine was still running. Warning converts an unplanned stoppage into a planned one, so
+the saving is the difference between the two, and only if the warning is long enough to act
+on. Reported as a sensitivity table over stated assumptions —
 [the full model is on the site](https://fatemeh-studio.github.io/nasa-bearing-anomaly/business.html).
 
 ## Data
 
 NASA IMS bearing dataset, three run-to-failure tests, 2003-10-22 to 2004-04-18, 20 kHz
 accelerometer records. J. Lee et al. (2007), IMS, University of Cincinnati — NASA Ames
-Prognostics Data Repository. Raw archive ~6.2 GB, not committed; the summary tables in
-`data/processed/` are, so a clean clone runs. Licence, fetch command, column dictionary
-and known defects: **[`data/README.md`](data/README.md)**.
+Prognostics Data Repository. The 6.2 GB raw archive is not committed; the processed tables
+are, so a clean clone runs. Licence, columns, defects: **[`data/README.md`](data/README.md)**.
 
 ## Reproduce
 
@@ -62,7 +62,7 @@ cd nasa-bearing-anomaly
 conda env create -f environment.yml   # or: python -m venv .venv && pip install -e ".[dev,notebook]"
 conda activate nasa-bearing-anomaly
 
-pytest                                # 93 tests
+pytest                                # 123 tests
 jupyter lab notebooks/                # run 01 → 04 in order
 
 # ...or headless, from the committed tables:
@@ -75,7 +75,7 @@ python -m nasa_bearing_anomaly.business --test all --feature-source enriched
 ```
 src/nasa_bearing_anomaly/  library code — physics, features, detection, business
 notebooks/                 narrative; outputs stripped, figures committed separately
-tests/                     93 tests; no __init__.py, so imports resolve as a cloner's do
+tests/                     123 tests; no __init__.py, so imports resolve as a cloner's do
 data/                      raw/ gitignored; processed/ committed. Facts in data/README.md
 figures/headline/          only the figure this README embeds
 results/                   generated figures and summary tables
@@ -83,10 +83,10 @@ results/                   generated figures and summary tables
 
 ## Limitations
 
-- **The detector reads time-domain features only.** `features.py` computes defect-frequency
-  band energy, spectral entropy and the high-frequency ratio from raw waveforms, and they are
-  tested — but the pipeline scores the committed summary tables, so none of them reaches the
-  model. Connecting them, and ablating whether they earn their place, is the next step.
+- **The negative ablation is one rig and three runs.** This rig is heavily loaded and runs
+  to destruction, so degradation is large and monotone by the time it is detectable — the
+  regime that most favours a plain amplitude feature. It is not evidence that defect
+  frequencies add nothing in general.
 - **Lead time is anchored on the end of each run.** The rigs ran to destruction, so the
   last live acquisition is taken as the failure — but no independent ground-truth failure
   timestamp exists to check that against.

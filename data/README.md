@@ -217,8 +217,8 @@ row for row. Eighteen features per channel, named `{Bearing}_ch{N}_{feature}`:
 | `_clearance_factor` | peak / (mean square-root amplitude)², dimensionless |
 | `_energy` | sum of squares over the 20,480 samples, g² |
 | `_mean_abs` | mean absolute amplitude, in g |
-| `_spectral_entropy` | Shannon entropy of the normalised Welch PSD, in [0, 1]. **Higher when healthy** |
-| `_high_freq_ratio` | share of PSD power above 5 kHz, in [0, 1]. **Higher when healthy** |
+| `_spectral_entropy` | Shannon entropy of the normalised Welch PSD, in [0, 1]. **Higher when healthy** on all three runs |
+| `_high_freq_ratio` | share of PSD power above 5 kHz, in [0, 1]. Direction is **not reliable** — see below |
 | `_dominant_freq_hz` | frequency of the largest PSD bin, Hz |
 | `_psd_mean`, `_psd_std` | mean and standard deviation of the PSD, g²/Hz |
 | `_bpfo_energy`, `_bpfi_energy`, `_bsf_energy` | PSD power summed over three harmonic bands at that defect frequency, g²/Hz |
@@ -241,6 +241,24 @@ frequency; each impact rings a structural resonance in the kHz range, so the def
 rate appears as the *modulation* of that resonance. The envelope columns band-pass
 to 2 kHz–Nyquist, take the analytic-signal magnitude, and measure the defect bands on
 the spectrum of that envelope. The band is fixed in advance rather than fitted.
+
+**Two direction warnings, both measured by `notebooks/02_feature_engineering.ipynb`**
+from a healthy window to the last 30 live acquisitions of each run:
+
+| Column | Test 1 (inner race) | Test 2 (outer race) | Test 3 (outer race) |
+| ------ | ------------------- | ------------------- | ------------------- |
+| `_spectral_entropy` | 0.916 → 0.911 | 0.850 → 0.774 | 0.911 → 0.860 |
+| `_high_freq_ratio`  | 0.504 → **0.507** | 0.128 → 0.122 | 0.318 → 0.232 |
+
+Entropy falls with damage on all three, which is the opposite of the naive expectation
+and is the documented behaviour: healthy noise is broadband and near-flat, which is
+maximum entropy, and a defect concentrates energy into harmonics. The magnitude varies
+enough that Test 1 is barely a movement.
+
+`_high_freq_ratio` is documented to fall for the same reason, and on Test 1 it **rises**.
+Do not rely on its direction. Test 1 is the inner-race run, and an inner-race defect is
+amplitude-modulated by shaft rotation, which spreads energy into sidebands rather than
+concentrating it — that would account for the difference, but nothing here tests it.
 
 **These columns are strongly log-normal.** `_env_bpfo_energy` spans roughly three
 orders of magnitude between healthy and failed on Test 3, so a linear reading is

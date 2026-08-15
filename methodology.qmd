@@ -1,18 +1,17 @@
 ---
 title: "Method"
-subtitle: "What the detector reads, and an alert rule chosen without looking at the answer"
+subtitle: "Features, an ablation, and an alert rule chosen without looking at the answer"
 ---
 
 The model here is ordinary — a scikit-learn Isolation Forest, which is the most common
 choice made on this dataset. What the project rests on is not the model but the layer
-after it: a lead-time metric built so that it cannot be tuned into a flattering number.
+after it: a lead-time metric built so that it cannot be tuned into a flattering number,
+and a comparison that tests the project's own central claim rather than assuming it.
 
-**The feature scope, stated up front.** The features below fall into two groups: those the
-published pipeline actually scores, and the defect-frequency machinery that is implemented
-and tested but not yet joined to it. The second group needs raw waveforms, and the pipeline
-scores a table of per-file summary statistics, so nothing in it reaches the model. The split
-is marked throughout, because the difference between what this project measures and what it
-is set up to measure is exactly the kind of thing a method page exists to be honest about.
+**That comparison came out negative, and it is stated here rather than buried.** The
+defect-frequency machinery works — it identifies which surface failed, on real data, in
+three of four documented cases. It does not improve how early the failure is detected.
+Both halves are below.
 
 ## Why a bearing defect has a frequency
 
@@ -33,11 +32,6 @@ frequencies it yields for this bearing, their provenance, and which one carries 
 in which test. They are properties of the rig rather than choices made here, so they live
 with the data and are stated once.
 
-This is what would make a fault *locatable* rather than merely detectable. Energy rising at
-the outer-race pass frequency and its harmonics says **outer race** — it does not say
-"something is wrong". That is what the frequency-domain features are built to see, and it
-is the part not yet wired into the published result.
-
 ## What the detector reads
 
 `loading.py` reduces each 20,480-sample acquisition to six statistics per channel: RMS,
@@ -45,10 +39,10 @@ mean, standard deviation, absolute maximum, excess kurtosis and skewness. `featu
 then adds, for the RMS and kurtosis columns only, rolling mean, standard deviation and
 maximum over windows of 10 and 50 files, plus first differences and their absolute values.
 
-The detector selects from that table by substring — `_rms`, `_kurt`, `_std`, `_max` — and
-by the failed bearing's prefix. Mean and skewness are computed and then not selected. For
-Test 3, Bearing 3 that is **20 columns**; for Test 1, which carries two accelerometers per
-bearing, **40**.
+The published detector selects from that table by substring — `_rms`, `_kurt`, `_std`,
+`_max` — and by the failed bearing's prefix. Mean and skewness are computed and then not
+selected. For Test 3, Bearing 3 that is **20 columns**; for Test 1, which carries two
+accelerometers per bearing, **40**.
 
 - **RMS** — total vibration energy. The primary degradation indicator, and on this data it
   rises 11.4× above baseline before Test 3's bearing fails.
@@ -58,68 +52,138 @@ bearing, **40**.
   Gaussian reads 0 and not 3 — every threshold in the bearing literature is quoted 3 too
   high for this column. See [the data documentation](data.qmd).
 - **Standard deviation and absolute maximum** — for a near-zero-mean signal the first is
-  numerically close to RMS, and the second is the peak that a crest factor would be
-  built from.
+  numerically close to RMS, and the second is the peak a crest factor would be built from.
 - **The rolling and difference columns are 16 of the 20.** They carry the *rate* of
   degradation rather than its level, which is what lets an alert fire while the level
   itself is still unremarkable.
 
 Every one of these is a time-domain quantity. None of them knows what a bearing is.
 
-## Implemented, and not yet joined to the pipeline
+## The defect-frequency features
 
-`FeatureExtractor` computes the following from a raw 1-D waveform. Each is exercised by
-`tests/test_features.py`, and notebook 02 demonstrates them on synthetic healthy and faulty
-signals — but the detection pipeline never loads a waveform, so none of them appears in the
-feature table the model sees.
+A second pass over the raw archive computes these per acquisition and writes them to
+`data/processed/test{N}_spectral.csv`, which is committed — so everything below
+reproduces from a clean clone without the 6.2 GB download.
 
 **Frequency domain**, from a Welch power spectral density (PSD) estimate:
 
-- **Defect-frequency band energy** — power in narrow bands around BPFO, BPFI, BSF and FTF
-  and their first three harmonics. This is the physics-informed feature proper: it asks the
-  specific question the geometry poses.
+- **Defect-frequency band energy** — power in bands around BPFO, BPFI and BSF and their
+  first three harmonics.
 - **Spectral entropy** — how evenly energy is spread across the spectrum.
 - **High-frequency ratio** — proportion of energy above 5 kHz.
 
-**Time domain**, shape ratios the summary table does not carry:
+**Envelope domain** — the same three bands, measured a different way, and it is the
+physically correct way. A localised defect does not radiate at its defect frequency. Each
+impact rings a structural resonance in the kHz range, so the defect rate appears as the
+*modulation* of that resonance and carries no line of its own in the raw spectrum.
+Band-passing to 2 kHz–Nyquist and taking the analytic-signal magnitude moves that
+modulation to baseband, where it is a line again. This is standard practice for
+rolling-element bearings, after Randall and Antoni (2011).
 
-- **Crest factor** and **clearance factor** — peak-to-average ratios, the same
-  impulsiveness idea as kurtosis, normalised differently.
+Two choices in there are worth stating because they were made against a rule rather than
+by taste:
 
-Joining these to the pipeline costs one pass over the 6.2 GB raw archive. Whether they earn
-their place over RMS and kurtosis alone is then an ablation rather than an assertion, and
-that experiment has not been run.
+**Band width is derived, not picked.** The Welch estimate uses a 0.1 s window, giving
+10 Hz bins, and a band must span at least three bins to be an integral rather than a point
+sample. Before that rule, a fixed 5 Hz half-width resolved to exactly **one** bin at every
+harmonic of every defect frequency, which made the width parameter inert.
+
+**FTF gets no column, and the exclusion is derived too.** At 14.775 Hz no three-bin band
+around it clears DC, where the bin carries the signal mean rather than defect energy. A
+longer window would let it back in automatically. No test in this dataset has a cage
+failure, which is what FTF diagnoses.
+
+## The bands name the right fault
+
+Fold change from a healthy window to the last 30 live acquisitions, on the envelope
+spectrum, per bearing. Produced by notebook 02; the post-shutdown tail is measured per
+run rather than assumed.
+
+| Test | Documented failure | Dominant band on that bearing | |
+|---|---|---|---|
+| 1 | Bearing 3, **inner race** | BPFI **18.8×**, against BSF 17.4 and BPFO 10.3 | correct |
+| 1 | Bearing 4, **roller element** | BPFO 15.0×, against BPFI 8.8 and BSF 8.4 | **missed** |
+| 2 | Bearing 1, **outer race** | BPFO **150.1×**, against BPFI 10.4 and BSF 8.9 | correct |
+| 3 | Bearing 3, **outer race** | BPFO **354.4×**, against BSF 42.1 and BPFI 38.5 | correct |
+
+The failed bearing is also the loudest bearing on its shaft each time — 354× against 8.8×
+for a healthy bearing in Test 3. So this is specificity, not merely sensitivity: it says
+*which* surface on *which* bearing, which overall vibration amplitude cannot.
+
+Three of four is the honest count. Bearing 4's roller-element defect in Test 1 is read as
+outer race. Rolling-element and cage faults are the known-hard cases, and a roller defect
+often shows at twice BSF rather than at BSF; this analysis looks only at the first three
+harmonics of BSF itself.
+
+This is a descriptive contrast between two windows, not a validated classifier. It uses
+one hand-chosen healthy window and no held-out validation.
+
+## They do not improve lead time
+
+Five feature sets, scored with the selection procedure held identical throughout — same
+contamination, same target false-alarm rate, the same fixed (k, m) candidate list and
+first-that-passes rule, the same three-way healthy-window split, the same seed. Only the
+scored columns differ.
+
+| Feature set | Test 1 | Test 2 | Test 3 |
+|---|---|---|---|
+| **published** — time domain, 20 columns | **79.5 h** | **53.7 h** | **57.0 h** |
+| the same, log-scaled | 79.5 h | 53.8 h | 55.0 h |
+| + PSD bands, entropy, high-frequency ratio | 79.5 h | 54.3 h | 50.7 h |
+| + those, with rolling and difference columns | 10.5 h | 46.5 h | 57.8 h |
+| + envelope bands | 79.7 h | 53.7 h | **58.5 h** |
+
+Zero held-out false alarms in every one of the fifteen runs, in 323 / 147 / 949 files.
+
+**The best spectral arm buys 0.2 h, 0.0 h and 1.5 h.** Acquisitions are ten minutes apart,
+so Test 1's "gain" is one file.
+
+**The reason is visible in where the alarm fires.** On Test 1 four of the five arms fire at
+file 1829 or 1830 out of 2,156 — despite genuinely different models, with thresholds of
+−0.153, −0.139, −0.178 and −0.136, and one arm selecting a 4-of-5 rule where the others
+take 3-of-5. Different features, different detectors, the same moment. By the time
+degradation crosses a threshold calibrated against healthy data, every feature has already
+moved together; what is scored barely matters.
+
+**More features made it worse, not better.** The arm with rolling and difference columns on
+the spectral block carries 368 columns and is the worst on Test 1 by 303 files, while being
+second-best on Test 3. That is not a feature set that helps unevenly — it is an unstable
+one.
+
+**The log-scaled arm is why any of this is attributable.** Spectral band energies span three
+orders of magnitude and are strongly log-normal, so they have to be log-scaled to be usable
+at all. Without an arm that applies the same transform to the time-domain features and
+nothing else, the envelope arm's 1.5 h on Test 3 could have been credited to the physics —
+when the change of scale alone accounts for −2.0 h on the same run.
 
 ## Three feature directions that are the opposite of the intuition
 
-These are properties of the features in the section above — established on synthetic signals
-and by the test suite, not measured on this dataset's published result, since none of them
-is in it. Each is a trap that produces a confidently wrong reading, so they are worth
-stating plainly, together with how firmly each is actually established, which differs
-between them.
+Each is a trap that produces a confidently wrong reading, so they are worth stating
+plainly, together with how firmly each is established.
 
-- **Spectral entropy is *higher* in healthy bearings, not lower.** The intuition says
-  a fault means disorder means high entropy. The opposite holds: healthy bearing noise
-  is broadband and close to flat, which is maximum entropy. A developing defect
-  *concentrates* energy into BPFO harmonics — structure, not noise — and structure
-  lowers entropy. This one is **pinned by a test**
-  (`test_spectral_entropy_faulty_lower_than_healthy`, asserting healthy > faulty on
-  synthetic signals), so it cannot silently regress.
-- **`high_freq_ratio` runs the other way too**, for the same underlying reason:
-  healthy Gaussian noise is already rich in high frequencies, so there is little
-  headroom for a fault to add any. Only the `[0, 1]` range is asserted by a test; the
-  direction is documented but not pinned.
-- **`crest_factor` becomes unreliable at high fault severity.** The standard
-  explanation is that it rises early, as discrete impacts appear against a quiet
-  floor, then falls back once the defect is severe enough that impacts merge into a
-  noise floor the fault itself has lifted — so the peak stops standing out from the
-  average. Read monotonically, it will eventually suggest the bearing is recovering.
-  Only `crest_factor >= 1` is asserted by a test; the non-monotonicity is a
-  documented caution here, not a measurement this project makes.
-
-The uneven footing is deliberate to record rather than paper over: one direction is
-enforced by the suite, two are conventions carried from the literature and the feature
-definitions. Anything relying on the latter two should re-derive them first.
+- **Spectral entropy is *higher* in healthy bearings, not lower.** The intuition says a
+  fault means disorder means high entropy. The opposite holds: healthy bearing noise is
+  broadband and close to flat, which is maximum entropy. A developing defect *concentrates*
+  energy into BPFO harmonics — structure, not noise — and structure lowers entropy. Pinned
+  by a test (`test_spectral_entropy_faulty_lower_than_healthy`) on synthetic signals, and
+  it holds on all three runs in real data — 0.916 → 0.911, 0.850 → 0.774 and 0.911 → 0.860
+  from a healthy window to the end. The direction is consistent; the magnitude is not, and
+  on Test 1 it is barely a movement at all.
+- **`high_freq_ratio` is documented to run the other way too**, on the reasoning that
+  healthy Gaussian noise is already rich in high frequencies so a fault has little headroom
+  to add any. **Measured, it does not hold universally.** It falls on the two outer-race
+  runs — 0.128 → 0.122 and 0.318 → 0.232 — and *rises* on Test 1, 0.504 → 0.507. Test 1 is
+  the inner-race failure, and an inner-race defect is amplitude-modulated by shaft rotation,
+  which spreads energy into sidebands rather than concentrating it; that would explain the
+  difference, but this project has not tested that explanation and it should be read as a
+  hypothesis. Only the `[0, 1]` range is asserted by a test. **Do not rely on this feature's
+  direction.**
+- **`crest_factor` becomes unreliable at high fault severity.** It rises early, as discrete
+  impacts appear against a quiet floor, then falls back once the defect is severe enough
+  that impacts merge into a noise floor the fault itself has lifted. Read monotonically, it
+  will eventually suggest the bearing is recovering. Only `crest_factor >= 1` is asserted by
+  a test; the non-monotonicity is a documented caution here, and this dataset's runs end
+  before it appears — crest factor is still rising at failure.
 
 ## The detector
 
@@ -192,11 +256,15 @@ shaft stops. Test 1 never went quiet at all and ends on its RMS peak, so the usu
 
 ## What this does not establish
 
-- **The detector uses no frequency-domain feature.** Everything it scores is a
-  time-domain statistic or a rolling transform of one. The defect-frequency machinery is
-  implemented and tested but not joined to the pipeline, so this result neither supports
-  nor refutes the claim that bearing kinematics improve early detection. Connecting the
-  two, and ablating the difference, is the next piece of work.
+- **The ablation is one dataset and three runs.** That the defect-frequency features add
+  nothing here is not a claim that they add nothing. This rig is heavily loaded and runs to
+  destruction, so degradation is large and monotone by the time it is detectable at all —
+  the regime that most favours a plain amplitude feature. A lightly loaded machine, or one
+  where the question is *which* surface is failing rather than *whether* one is, is exactly
+  where the band features would be expected to pay.
+- **A negative ablation is not a licence to delete the features.** They answer a different
+  question, and they answer it correctly: three of four documented failure modes, named
+  from vibration alone.
 - **Three runs is three samples.** The alert rule is selected per run against that
   run's own healthy data. That is correct procedure, and it is not the same as
   validating a fixed rule on an unseen rig.

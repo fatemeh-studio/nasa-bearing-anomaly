@@ -59,11 +59,31 @@ So a usable number needs two things the naive metric lacks: a **sustained-alert 
 are chosen without fitting them to a flattering answer is the subject of
 [the method page](methodology.qmd).
 
+## The claim this project tested on itself
+
+Pairing NASA IMS with an Isolation Forest is a common exercise, and the differentiator
+usually claimed for it is physics-informed features: energy measured in narrow bands at
+the frequencies the bearing's geometry predicts. This project built those features and
+then tested whether they help, rather than asserting that they do.
+
+**They name the fault correctly.** Measured on the envelope spectrum, defect-band energy
+rises **354×** on Test 3's failed bearing against 8.8× on a healthy bearing on the same
+shaft — and the band that rises most is the one the documented failure mode predicts, in
+three of four cases.
+
+**They do not detect it earlier.** Across five feature sets scored with an identical
+selection procedure, the best spectral arm moves lead time by **1.5 hours out of 57**,
+and on Test 1 four of the five fire within one file of each other. The table, and the
+reason, are on [the method page](methodology.qmd).
+
+That is a negative result, and it is here rather than buried because the alternative was
+to assume the opposite.
+
 ## Where to go next
 
-- **[Method](methodology.qmd)** — the features the detector actually reads, the
-  defect-frequency machinery that is implemented but not yet joined to it, and how the
-  alert rule is selected without fitting it to a flattering answer.
+- **[Method](methodology.qmd)** — the features the detector reads, the ablation that
+  tested whether defect-frequency features earn a place beside them, and how the alert
+  rule is selected without fitting it to a flattering answer.
 - **[Data](data.qmd)** — the dataset, and a documented discrepancy in it: the
   distributed archive holds 6,324 files for Test 3 where the official documentation
   says 4,448, and the failure lives entirely in the undocumented remainder.
