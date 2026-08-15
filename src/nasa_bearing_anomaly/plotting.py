@@ -1,14 +1,21 @@
 """
-All visualization utilities for the NASA Bearing Anomaly Detection project.
+Figures for the NASA Bearing Anomaly Detection project.
 
-Plots produced:
-1. raw_signal_overview    — RMS over time for all 4 bearings (all tests)
-2. anomaly_overlay        — RMS + anomaly flags overlaid
-3. kurtosis_evolution     — Kurtosis over time (key fault indicator)
-4. pca_feature_space      — 2D PCA of features colored by anomaly score
-5. score_distribution     — Histogram of anomaly scores (normal vs. anomaly)
-6. defect_freq_heatmap    — Energy at BPFO/BPFI over time
-7. summary_dashboard      — 2×3 grid for a single test (portfolio piece)
+``BearingPlotter`` methods, one figure each:
+
+1. ``plot_rms_overview``       — RMS over time for every bearing in a test
+2. ``plot_anomaly_overlay``    — RMS with the sustained alarm and flagged files marked
+3. ``plot_kurtosis_evolution`` — excess kurtosis over time, the impulsiveness indicator
+4. ``plot_pca_feature_space``  — 2-D PCA of the feature table, coloured by anomaly score
+5. ``plot_score_distribution`` — histogram of anomaly scores, normal against anomalous
+6. ``plot_summary_dashboard``  — 2×3 grid for one test, the portfolio centrepiece
+
+``plot_all_tests`` is a module-level wrapper running four of those six over several scored
+tests; the PCA and dashboard figures take arguments it does not have.
+
+No figure derives a metric it draws. The alarm file, lead time and the k-of-m rule arrive
+as parameters from ``business.py``, because a figure is checked by nothing, so one that
+owns its own numbers stays wrong indefinitely.
 
 Usage:
     from nasa_bearing_anomaly.plotting import BearingPlotter
@@ -590,7 +597,10 @@ class BearingPlotter:
 
 def plot_all_tests(results: dict):
     """
-    Generate and save every figure for each scored test.
+    Generate and save the four argument-free figures for each scored test.
+
+    The PCA and dashboard figures are not included: they need ``feature_cols`` and the
+    alarm parameters respectively, and this wrapper has neither.
 
     Parameters
     ----------

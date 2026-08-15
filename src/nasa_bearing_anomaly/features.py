@@ -1,22 +1,27 @@
 """
-Physics-based feature extraction for bearing health monitoring.
+Feature extraction for bearing health monitoring.
 
-Two levels of features:
+Two independent halves, and only the second is wired into the detection pipeline.
 
-1. TIME-DOMAIN FEATURES (fast, interpretable)
-    - RMS: root mean square — direct measure of vibration energy
-    - Kurtosis: sensitivity to impulsive spikes (key fault indicator)
-    - Crest Factor: peak / RMS (rises when impulses appear)
-    - Shape Factor, Impulse Factor, Clearance Factor
+``FeatureExtractor`` operates on a **raw 1-D waveform**:
 
-2. FREQUENCY-DOMAIN FEATURES (requires raw waveform)
-    - Power Spectral Density via Welch method
-    - Band energy at BPFO, BPFI, BSF and FTF harmonics, measured on the PSD
-    - Spectral Entropy (order → chaos)
-    - High-frequency energy ratio (energy above 5 kHz)
+1. Time domain — RMS, excess kurtosis, skewness, peak, energy, and the crest, shape,
+   impulse and clearance factors.
+2. Frequency domain, from a Welch power spectral density (PSD) estimate — band energy at
+   BPFO, BPFI, BSF and FTF harmonics, spectral entropy, and the ratio of energy above
+   5 kHz.
 
-The combination of both makes this project stand out from
-basic Isolation Forest tutorials. This is what physicists do.
+Spectral entropy is **higher** in a healthy bearing, not lower: healthy noise is broadband
+and near-flat, which is maximum entropy, and a defect concentrates energy into BPFO
+harmonics, which lowers it. Pinned by ``test_spectral_entropy_faulty_lower_than_healthy``.
+
+``enrich_processed`` operates on the **summary table** ``loading.py`` writes, adding
+rolling and first-difference columns over the RMS and kurtosis channels.
+
+**Only ``enrich_processed`` reaches the model.** The detection pipeline reads the summary
+table and never a waveform, so nothing ``FeatureExtractor`` computes appears in the feature
+matrix. It is exercised by the test suite and demonstrated on synthetic signals in
+notebook 02. Joining the two costs one pass over the raw archive.
 
 Usage:
     from nasa_bearing_anomaly.features import FeatureExtractor
@@ -274,9 +279,10 @@ class FeatureExtractor:
         return {**td, **fd}
 
 
-# ─── Aggregate Feature Extraction from Processed CSVs ─────────────────────
-# When raw files are large, we can also re-derive advanced features
-# from the already-loaded statistical summaries.
+# ─── Rolling and Difference Features over the Summary Table ────────────────
+# This half of the module is what the detection pipeline reads. It adds temporal
+# context -- rate of change rather than level -- to the per-file statistics, and
+# needs only the committed summary tables, not the raw archive a clone lacks.
 
 
 def add_rolling_features(
