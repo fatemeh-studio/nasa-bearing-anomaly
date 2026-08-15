@@ -195,6 +195,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#time-domain-features" id="toc-time-domain-features" class="nav-link" data-scroll-target="#time-domain-features">1.1 Time-Domain Features</a></li>
   <li><a href="#frequency-domain-features" id="toc-frequency-domain-features" class="nav-link" data-scroll-target="#frequency-domain-features">1.2 Frequency-Domain Features</a></li>
+  <li><a href="#the-same-features-on-real-data-do-they-name-the-right-fault" id="toc-the-same-features-on-real-data-do-they-name-the-right-fault" class="nav-link" data-scroll-target="#the-same-features-on-real-data-do-they-name-the-right-fault">1.3 The same features on real data — do they name the right fault?</a></li>
   </ul></li>
   <li><a href="#apply-feature-engineering-to-all-tests" id="toc-apply-feature-engineering-to-all-tests" class="nav-link" data-scroll-target="#apply-feature-engineering-to-all-tests">2. Apply Feature Engineering to All Tests</a></li>
   <li><a href="#rolling-features-the-trend-signal" id="toc-rolling-features-the-trend-signal" class="nav-link" data-scroll-target="#rolling-features-the-trend-signal">3. Rolling Features — The Trend Signal</a></li>
@@ -378,28 +379,109 @@ mean_abs                      0.0848          0.1523</code></pre>
 ──────────────────────────────────────────────────
 spectral_entropy              0.9470      0.7647
 high_freq_ratio               0.4495      0.1038
-bpfo_energy                   0.0000      0.0011
-bpfi_energy                   0.0000      0.0001
-bsf_energy                    0.0000      0.0001
-ftf_energy                    0.0001      0.0002
 dominant_freq_hz             30.0000    240.0000
 psd_mean                      0.0000      0.0000
 psd_std                       0.0000      0.0000
+bpfo_energy                   0.0000      0.0020
+bpfi_energy                   0.0000      0.0002
+bsf_energy                    0.0000      0.0004
 
 Note: bpfo_energy should be much higher in the faulty signal!</code></pre>
+</div>
+</div>
+</section>
+<section id="the-same-features-on-real-data-do-they-name-the-right-fault" class="level3">
+<h3 class="anchored" data-anchor-id="the-same-features-on-real-data-do-they-name-the-right-fault">1.3 The same features on real data — do they name the right fault?</h3>
+<p>The demonstration above is synthetic. It proves the features compute what they claim, not that a real bearing behaves that way. This is the test that matters: for each run, how far does each defect band rise between a healthy window and the end of the run, and is the band that rises most the one the documented failure mode predicts?</p>
+<p>BPFO indicates the outer race, BPFI the inner race, BSF a rolling element. The post-shutdown tail is <strong>measured, not assumed</strong> — it is 0, 2 and 1 files for Tests 1-3, so dropping a fixed number would discard Test 1’s failure, which is its final file.</p>
+<div id="cell-9" class="cell" data-execution_count="5">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fold change from a healthy window to the end of each run, per bearing, per band,</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># measured on the envelope spectrum. Reads the committed tables, so this runs from a</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># clean clone without the 6.2 GB raw archive.</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.business <span class="im">import</span> drop_shutdown_tail</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.config <span class="im">import</span> TEST_CONFIG</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.features <span class="im">import</span> spectral_path</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.loading <span class="im">import</span> load_processed</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>HEALTHY <span class="op">=</span> <span class="bu">slice</span>(<span class="dv">100</span>, <span class="dv">130</span>)  <span class="co"># early, well inside the healthy region</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>N_END <span class="op">=</span> <span class="dv">30</span>  <span class="co"># last live acquisitions</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    spectral <span class="op">=</span> pd.read_csv(spectral_path(test_id), index_col<span class="op">=</span><span class="st">"file_index"</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    live, n_tail <span class="op">=</span> drop_shutdown_tail(load_processed(test_id).join(spectral))</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    healthy, end <span class="op">=</span> live.iloc[HEALTHY], live.iloc[<span class="op">-</span>N_END:]</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss"> -- documented: </span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  post-shutdown files dropped: </span><span class="sc">{</span>n_tail<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span><span class="st">'channel'</span><span class="sc">:22s}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'envBPFO'</span><span class="sc">:&gt;9s}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'envBPFI'</span><span class="sc">:&gt;9s}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'envBSF'</span><span class="sc">:&gt;9s}</span><span class="ss">"</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> config[<span class="st">"columns"</span>]:</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        folds <span class="op">=</span> [</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>            end[<span class="ss">f"</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_env_</span><span class="sc">{</span>band<span class="sc">}</span><span class="ss">_energy"</span>].median() <span class="op">/</span> healthy[<span class="ss">f"</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">_env_</span><span class="sc">{</span>band<span class="sc">}</span><span class="ss">_energy"</span>].median()</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> band <span class="kw">in</span> (<span class="st">"bpfo"</span>, <span class="st">"bpfi"</span>, <span class="st">"bsf"</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        mark <span class="op">=</span> <span class="st">"  &lt;- documented failure"</span> <span class="cf">if</span> col.startswith(config[<span class="st">"failed_bearing"</span>]) <span class="cf">else</span> <span class="st">""</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>col<span class="sc">:22s}</span><span class="ss"> </span><span class="sc">{</span>folds[<span class="dv">0</span>]<span class="sc">:9.1f}</span><span class="ss"> </span><span class="sc">{</span>folds[<span class="dv">1</span>]<span class="sc">:9.1f}</span><span class="ss"> </span><span class="sc">{</span>folds[<span class="dv">2</span>]<span class="sc">:9.1f}{</span>mark<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># The two counterintuitive directions, on real data rather than synthetic.</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Both are expected to FALL with damage; see the method page.</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    target <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>config[<span class="st">'failed_bearing'</span>]<span class="sc">}</span><span class="ss">_ch1"</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name <span class="kw">in</span> (<span class="st">"spectral_entropy"</span>, <span class="st">"high_freq_ratio"</span>):</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>target<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>name<span class="sc">:22s}</span><span class="ss"> healthy </span><span class="sc">{</span>healthy[col]<span class="sc">.</span>median()<span class="sc">:.3f}</span><span class="ss"> -&gt; end </span><span class="sc">{</span>end[col]<span class="sc">.</span>median()<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Test 1 -- documented: Inner race failure (Bearing 4 roller element also failed)
+  post-shutdown files dropped: 0
+  channel                  envBPFO   envBPFI    envBSF
+  Bearing1_ch1                 2.0       1.7       1.3
+  Bearing1_ch2                 1.7       1.8       1.4
+  Bearing2_ch1                 3.2       3.5       2.2
+  Bearing2_ch2                 2.4       5.8       2.6
+  Bearing3_ch1                10.3      18.8      17.4  &lt;- documented failure
+  Bearing3_ch2                 7.8      19.1      11.0  &lt;- documented failure
+  Bearing4_ch1                15.0       8.8       8.4
+  Bearing4_ch2                 5.6       4.9       3.7
+  spectral_entropy       healthy 0.916 -&gt; end 0.911
+  high_freq_ratio        healthy 0.504 -&gt; end 0.507
+
+Test 2 -- documented: Outer race failure
+  post-shutdown files dropped: 2
+  channel                  envBPFO   envBPFI    envBSF
+  Bearing1_ch1               150.1      10.4       8.9  &lt;- documented failure
+  Bearing2_ch1                 4.0       1.4       1.3
+  Bearing3_ch1                 1.3       1.0       0.8
+  Bearing4_ch1                 6.9       2.4       2.1
+  spectral_entropy       healthy 0.850 -&gt; end 0.774
+  high_freq_ratio        healthy 0.128 -&gt; end 0.122
+
+Test 3 -- documented: Outer race failure
+  post-shutdown files dropped: 1
+  channel                  envBPFO   envBPFI    envBSF
+  Bearing1_ch1                 8.8       2.5       2.0
+  Bearing2_ch1                17.5       3.5       3.5
+  Bearing3_ch1               354.4      38.5      42.1  &lt;- documented failure
+  Bearing4_ch1               194.5      10.8      11.8
+  spectral_entropy       healthy 0.911 -&gt; end 0.860
+  high_freq_ratio        healthy 0.318 -&gt; end 0.232</code></pre>
 </div>
 </div>
 </section>
 </section>
 <section id="apply-feature-engineering-to-all-tests" class="level2">
 <h2 class="anchored" data-anchor-id="apply-feature-engineering-to-all-tests">2. Apply Feature Engineering to All Tests</h2>
-<div id="cell-9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:27.746678Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:27.746589Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:28.581691Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:28.580926Z&quot;}}" data-execution_count="5">
+<div id="cell-11" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:27.746678Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:27.746589Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:28.581691Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:28.580926Z&quot;}}" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>enriched_dfs <span class="op">=</span> {}</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">:"</span>)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    enriched_dfs[test_id] <span class="op">=</span> enrich_processed(test_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>enriched_dfs <span class="op">=</span> {}</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">:"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    enriched_dfs[test_id] <span class="op">=</span> enrich_processed(test_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -419,16 +501,16 @@ Test 3:
 Saved enriched features: data/processed/test3_features.csv  (6324 rows, 90 columns)</code></pre>
 </div>
 </div>
-<div id="cell-10" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:28.582850Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:28.582712Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:28.585449Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:28.584864Z&quot;}}" data-execution_count="6">
+<div id="cell-12" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:28.582850Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:28.582712Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:28.585449Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:28.584864Z&quot;}}" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Show the new enriched columns</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> enriched_dfs[<span class="dv">1</span>]</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>new_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df.columns <span class="cf">if</span> <span class="st">"roll"</span> <span class="kw">in</span> c <span class="kw">or</span> <span class="st">"diff"</span> <span class="kw">in</span> c]</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Rolling + Rate-of-change features added: </span><span class="sc">{</span><span class="bu">len</span>(new_cols)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Example columns:"</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> new_cols[:<span class="dv">15</span>]:</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Show the new enriched columns</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> enriched_dfs[<span class="dv">1</span>]</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>new_cols <span class="op">=</span> [c <span class="cf">for</span> c <span class="kw">in</span> df.columns <span class="cf">if</span> <span class="st">"roll"</span> <span class="kw">in</span> c <span class="kw">or</span> <span class="st">"diff"</span> <span class="kw">in</span> c]</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Rolling + Rate-of-change features added: </span><span class="sc">{</span><span class="bu">len</span>(new_cols)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Example columns:"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> new_cols[:<span class="dv">15</span>]:</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rolling + Rate-of-change features added: 128
@@ -454,57 +536,57 @@ Example columns:
 <section id="rolling-features-the-trend-signal" class="level2">
 <h2 class="anchored" data-anchor-id="rolling-features-the-trend-signal">3. Rolling Features — The Trend Signal</h2>
 <p>A rolling mean smooths noise and reveals the degradation <em>trend</em>. Rate-of-change detects <em>acceleration</em> in degradation — often the earliest warning.</p>
-<div id="cell-12" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:28.586383Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:28.586291Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:28.969578Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:28.968960Z&quot;}}" data-execution_count="7">
+<div id="cell-14" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:28.586383Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:28.586291Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:28.969578Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:28.968960Z&quot;}}" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize rolling features for Test 1 (Bearing3)</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>df1 <span class="op">=</span> enriched_dfs[<span class="dv">1</span>]</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>raw_col <span class="op">=</span> <span class="st">"Bearing3_ch1_rms"</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>roll_col <span class="op">=</span> <span class="st">"Bearing3_ch1_rms_roll_mean_50"</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>diff_col <span class="op">=</span> <span class="st">"Bearing3_ch1_rms_diff_abs"</span></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2, ax3) <span class="op">=</span> plt.subplots(<span class="dv">3</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">9</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> raw_col <span class="kw">in</span> df1.columns:</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    ax1.plot(df1.index, df1[raw_col], color<span class="op">=</span><span class="st">"#58a6ff"</span>, linewidth<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">"Raw RMS"</span>, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> roll_col <span class="kw">in</span> df1.columns:</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    ax1.plot(df1.index, df1[roll_col], color<span class="op">=</span><span class="st">"#f85149"</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">"Rolling Mean (50)"</span>)</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">"Test 1 — Bearing3 RMS: Raw vs Rolling Mean"</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">"RMS (g)"</span>)</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>ax1.legend()</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>ax1.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>kurt_col <span class="op">=</span> <span class="st">"Bearing3_ch1_kurt"</span></span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>roll_kurt <span class="op">=</span> <span class="st">"Bearing3_ch1_kurt_roll_mean_50"</span></span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> kurt_col <span class="kw">in</span> df1.columns:</span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    ax2.plot(df1.index, df1[kurt_col], color<span class="op">=</span><span class="st">"#d29922"</span>, linewidth<span class="op">=</span><span class="fl">0.7</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">"Kurtosis"</span>)</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> roll_kurt <span class="kw">in</span> df1.columns:</span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    ax2.plot(df1.index, df1[roll_kurt], color<span class="op">=</span><span class="st">"#bc8cff"</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">"Rolling Kurt (50)"</span>)</span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>ax2.axhline(y<span class="op">=</span><span class="dv">5</span>, color<span class="op">=</span><span class="st">"#f85149"</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">"Kurtosis: Raw vs Rolling"</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">"Kurtosis"</span>)</span>
-<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>ax2.legend()</span>
-<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>ax2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> diff_col <span class="kw">in</span> df1.columns:</span>
-<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    ax3.plot(df1.index, df1[diff_col], color<span class="op">=</span><span class="st">"#3fb950"</span>, linewidth<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    ax3.fill_between(df1.index, df1[diff_col], alpha<span class="op">=</span><span class="fl">0.3</span>, color<span class="op">=</span><span class="st">"#3fb950"</span>)</span>
-<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>ax3.set_title(<span class="st">"Rate of Change in RMS (early warning signal)"</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>ax3.set_xlabel(<span class="st">"File Index (Time →)"</span>)</span>
-<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>ax3.set_ylabel(<span class="st">"|ΔRMS|"</span>)</span>
-<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>ax3.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>plt.suptitle(</span>
-<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Feature Engineering: Rolling &amp; Rate-of-Change Features"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span></span>
-<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>plt.savefig(FIGURES_DIR <span class="op">/</span> <span class="st">"feature_rolling_test1.png"</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">"tight"</span>)</span>
-<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize rolling features for Test 1 (Bearing3)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>df1 <span class="op">=</span> enriched_dfs[<span class="dv">1</span>]</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>raw_col <span class="op">=</span> <span class="st">"Bearing3_ch1_rms"</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>roll_col <span class="op">=</span> <span class="st">"Bearing3_ch1_rms_roll_mean_50"</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>diff_col <span class="op">=</span> <span class="st">"Bearing3_ch1_rms_diff_abs"</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2, ax3) <span class="op">=</span> plt.subplots(<span class="dv">3</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">9</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> raw_col <span class="kw">in</span> df1.columns:</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    ax1.plot(df1.index, df1[raw_col], color<span class="op">=</span><span class="st">"#58a6ff"</span>, linewidth<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">"Raw RMS"</span>, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> roll_col <span class="kw">in</span> df1.columns:</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    ax1.plot(df1.index, df1[roll_col], color<span class="op">=</span><span class="st">"#f85149"</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">"Rolling Mean (50)"</span>)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">"Test 1 — Bearing3 RMS: Raw vs Rolling Mean"</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">"RMS (g)"</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>ax1.legend()</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>ax1.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>kurt_col <span class="op">=</span> <span class="st">"Bearing3_ch1_kurt"</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>roll_kurt <span class="op">=</span> <span class="st">"Bearing3_ch1_kurt_roll_mean_50"</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> kurt_col <span class="kw">in</span> df1.columns:</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    ax2.plot(df1.index, df1[kurt_col], color<span class="op">=</span><span class="st">"#d29922"</span>, linewidth<span class="op">=</span><span class="fl">0.7</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">"Kurtosis"</span>)</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> roll_kurt <span class="kw">in</span> df1.columns:</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    ax2.plot(df1.index, df1[roll_kurt], color<span class="op">=</span><span class="st">"#bc8cff"</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">"Rolling Kurt (50)"</span>)</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>ax2.axhline(y<span class="op">=</span><span class="dv">5</span>, color<span class="op">=</span><span class="st">"#f85149"</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">"Kurtosis: Raw vs Rolling"</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">"Kurtosis"</span>)</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>ax2.legend()</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>ax2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> diff_col <span class="kw">in</span> df1.columns:</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    ax3.plot(df1.index, df1[diff_col], color<span class="op">=</span><span class="st">"#3fb950"</span>, linewidth<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    ax3.fill_between(df1.index, df1[diff_col], alpha<span class="op">=</span><span class="fl">0.3</span>, color<span class="op">=</span><span class="st">"#3fb950"</span>)</span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>ax3.set_title(<span class="st">"Rate of Change in RMS (early warning signal)"</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>ax3.set_xlabel(<span class="st">"File Index (Time →)"</span>)</span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>ax3.set_ylabel(<span class="st">"|ΔRMS|"</span>)</span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>ax3.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>plt.suptitle(</span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Feature Engineering: Rolling &amp; Rate-of-Change Features"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>plt.savefig(FIGURES_DIR <span class="op">/</span> <span class="st">"feature_rolling_test1.png"</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">"tight"</span>)</span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_feature_engineering_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+<p><img src="02_feature_engineering_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
@@ -513,58 +595,58 @@ Example columns:
 <section id="feature-importance-preview" class="level2">
 <h2 class="anchored" data-anchor-id="feature-importance-preview">4. Feature Importance Preview</h2>
 <p>Compare feature distributions in early (healthy) vs late (degraded) period.</p>
-<div id="cell-14" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:28.970591Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:28.970488Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:29.829510Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:29.828967Z&quot;}}" data-execution_count="8">
+<div id="cell-16" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:28.970591Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:28.970488Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:29.829510Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:29.828967Z&quot;}}" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">8</span>))</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>axes <span class="op">=</span> axes.flatten()</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>features_to_plot <span class="op">=</span> [</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_rms"</span>, <span class="st">"RMS"</span>),</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_kurt"</span>, <span class="st">"Kurtosis"</span>),</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_std"</span>, <span class="st">"Std Dev"</span>),</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_max"</span>, <span class="st">"Peak Value"</span>),</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_skew"</span>, <span class="st">"Skewness"</span>),</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch2_rms"</span>, <span class="st">"RMS (ch2)"</span>),</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>df1 <span class="op">=</span> enriched_dfs[<span class="dv">1</span>]</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="bu">len</span>(df1)</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>early <span class="op">=</span> df1.iloc[: <span class="bu">int</span>(n <span class="op">*</span> <span class="fl">0.4</span>)]</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>late <span class="op">=</span> df1.iloc[<span class="bu">int</span>(n <span class="op">*</span> <span class="fl">0.8</span>) :]</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (col, label) <span class="kw">in</span> <span class="bu">zip</span>(axes, features_to_plot, strict<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> col <span class="kw">in</span> df1.columns:</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        ax.hist(</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>            early[col].dropna(),</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>            bins<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>            color<span class="op">=</span><span class="st">"#3fb950"</span>,</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>            alpha<span class="op">=</span><span class="fl">0.7</span>,</span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>            density<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="st">"Healthy (0-40%)"</span>,</span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>        ax.hist(</span>
-<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>            late[col].dropna(),</span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>            bins<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>            color<span class="op">=</span><span class="st">"#f85149"</span>,</span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>            alpha<span class="op">=</span><span class="fl">0.7</span>,</span>
-<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>            density<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="st">"Degraded (80-100%)"</span>,</span>
-<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>        ax.set_title(label, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>        ax.set_ylabel(<span class="st">"Density"</span>)</span>
-<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>        ax.legend(fontsize<span class="op">=</span><span class="dv">7</span>)</span>
-<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>        ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Test 1 — Feature Distributions: Healthy vs Degraded"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>plt.savefig(FIGURES_DIR <span class="op">/</span> <span class="st">"feature_distributions_test1.png"</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">"tight"</span>)</span>
-<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">8</span>))</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>axes <span class="op">=</span> axes.flatten()</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>features_to_plot <span class="op">=</span> [</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_rms"</span>, <span class="st">"RMS"</span>),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_kurt"</span>, <span class="st">"Kurtosis"</span>),</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_std"</span>, <span class="st">"Std Dev"</span>),</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_max"</span>, <span class="st">"Peak Value"</span>),</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch1_skew"</span>, <span class="st">"Skewness"</span>),</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Bearing3_ch2_rms"</span>, <span class="st">"RMS (ch2)"</span>),</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>df1 <span class="op">=</span> enriched_dfs[<span class="dv">1</span>]</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="bu">len</span>(df1)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>early <span class="op">=</span> df1.iloc[: <span class="bu">int</span>(n <span class="op">*</span> <span class="fl">0.4</span>)]</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>late <span class="op">=</span> df1.iloc[<span class="bu">int</span>(n <span class="op">*</span> <span class="fl">0.8</span>) :]</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (col, label) <span class="kw">in</span> <span class="bu">zip</span>(axes, features_to_plot, strict<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> col <span class="kw">in</span> df1.columns:</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        ax.hist(</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>            early[col].dropna(),</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>            bins<span class="op">=</span><span class="dv">30</span>,</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>            color<span class="op">=</span><span class="st">"#3fb950"</span>,</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>            alpha<span class="op">=</span><span class="fl">0.7</span>,</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>            density<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="st">"Healthy (0-40%)"</span>,</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>        ax.hist(</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>            late[col].dropna(),</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>            bins<span class="op">=</span><span class="dv">30</span>,</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>            color<span class="op">=</span><span class="st">"#f85149"</span>,</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>            alpha<span class="op">=</span><span class="fl">0.7</span>,</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>            density<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="st">"Degraded (80-100%)"</span>,</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>        ax.set_title(label, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>        ax.set_ylabel(<span class="st">"Density"</span>)</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        ax.legend(fontsize<span class="op">=</span><span class="dv">7</span>)</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>        ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Test 1 — Feature Distributions: Healthy vs Degraded"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>plt.savefig(FIGURES_DIR <span class="op">/</span> <span class="st">"feature_distributions_test1.png"</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">"tight"</span>)</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_feature_engineering_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></p>
+<p><img src="02_feature_engineering_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>

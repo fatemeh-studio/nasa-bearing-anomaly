@@ -198,7 +198,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#what-the-warning-is-worth" id="toc-what-the-warning-is-worth" class="nav-link" data-scroll-target="#what-the-warning-is-worth">What the warning is worth</a></li>
   </ul></li>
-  <li><a href="#write-the-readme-hero-figure" id="toc-write-the-readme-hero-figure" class="nav-link" data-scroll-target="#write-the-readme-hero-figure">5. Write the README Hero Figure</a></li>
+  <li><a href="#do-the-physics-informed-features-earn-their-place" id="toc-do-the-physics-informed-features-earn-their-place" class="nav-link" data-scroll-target="#do-the-physics-informed-features-earn-their-place">5. Do the physics-informed features earn their place?</a></li>
+  <li><a href="#write-the-readme-hero-figure" id="toc-write-the-readme-hero-figure" class="nav-link" data-scroll-target="#write-the-readme-hero-figure">6. Write the README Hero Figure</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/blob/main/notebooks/04_results_visualization.ipynb" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -618,20 +619,64 @@ For scale -- published whole-facility rates, NOT the rate used above:
 </div>
 </section>
 </section>
-<section id="write-the-readme-hero-figure" class="level2">
-<h2 class="anchored" data-anchor-id="write-the-readme-hero-figure">5. Write the README Hero Figure</h2>
-<p><code>figures/headline/</code> holds only the figures the README embeds, matching the rest of the portfolio. Everything else stays under <code>results/figures/</code>.</p>
-<div id="cell-14" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:58.463520Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:58.463427Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:58.466652Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:58.466065Z&quot;}}" data-execution_count="7">
+<section id="do-the-physics-informed-features-earn-their-place" class="level2">
+<h2 class="anchored" data-anchor-id="do-the-physics-informed-features-earn-their-place">5. Do the physics-informed features earn their place?</h2>
+<p>Everything above scores time-domain features. The repository also computes defect-frequency band energy, spectral entropy and envelope-spectrum features from the raw waveforms, and the question this section answers is whether any of it buys warning.</p>
+<p>Five feature sets, the same selection procedure throughout — same contamination, same target false-alarm rate, the same fixed (k, m) candidate list and first-that-passes rule, the same three-way healthy-window split, the same seed. Only the scored columns differ, so a difference in lead time is attributable to the features and not to the procedure.</p>
+<p><code>log</code> is the published set on a log scale, and it exists to separate two effects. The spectral features are strongly log-normal, so they have to be log-scaled to be usable at all — without a log-only arm there would be no way to tell whether a spectral arm won because of the physics or because of the change of units.</p>
+<div id="cell-14" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>src <span class="op">=</span> FIGURES_DIR <span class="op">/</span> <span class="st">"all_tests_comparison.png"</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>dst <span class="op">=</span> HEADLINE_DIR <span class="op">/</span> <span class="st">"01_all_tests_comparison.png"</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> src.exists():</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    shutil.copy(src, dst)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Saved: </span><span class="sc">{</span>repo_path(dst)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Embedded in README.md as: ![Results](figures/headline/01_all_tests_comparison.png)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stdout is suppressed here on purpose: fifteen fits print their own progress, which</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># would bury the comparison under a wall of text on the rendered site. The per-run</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># detail is available from `python -m nasa_bearing_anomaly.business --test all --ablation`.</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> contextlib</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.business <span class="im">import</span> run_ablation</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> contextlib.redirect_stdout(io.StringIO()):</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    ablation <span class="op">=</span> run_ablation()</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>ablation.to_csv(REPORTS_DIR <span class="op">/</span> <span class="st">"ablation_summary.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"LEAD TIME BY FEATURE SET -- hours, held-out false alarms in brackets"</span>)</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">78</span>)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> {(r.feature_source, r.test): r <span class="cf">for</span> r <span class="kw">in</span> ablation.itertuples()}</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> arm <span class="kw">in</span> ablation[<span class="st">"feature_source"</span>].drop_duplicates():</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    cells <span class="op">=</span> <span class="st">" | "</span>.join(</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"test </span><span class="sc">{</span>t<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>rows[(arm, t)]<span class="sc">.</span>lead_hours<span class="sc">:5.1f}</span><span class="ss"> h (</span><span class="sc">{</span>rows[(arm, t)]<span class="sc">.</span>heldout_false_alarms<span class="sc">}</span><span class="ss">)"</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>arm<span class="sc">:14s}</span><span class="ss"> </span><span class="sc">{</span>cells<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Saved: results/reports/ablation_summary.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>LEAD TIME BY FEATURE SET -- hours, held-out false alarms in brackets
+==============================================================================
+  enriched       test 1:  79.5 h (0) | test 2:  53.7 h (0) | test 3:  57.0 h (0)
+  log            test 1:  79.5 h (0) | test 2:  53.8 h (0) | test 3:  55.0 h (0)
+  psd            test 1:  79.5 h (0) | test 2:  54.3 h (0) | test 3:  50.7 h (0)
+  psd_enriched   test 1:  10.5 h (0) | test 2:  46.7 h (0) | test 3:  57.8 h (0)
+  envelope       test 1:  79.7 h (0) | test 2:  53.7 h (0) | test 3:  58.5 h (0)
+
+Saved: results/reports/ablation_summary.csv</code></pre>
+</div>
+</div>
+</section>
+<section id="write-the-readme-hero-figure" class="level2">
+<h2 class="anchored" data-anchor-id="write-the-readme-hero-figure">6. Write the README Hero Figure</h2>
+<p><code>figures/headline/</code> holds only the figures the README embeds, matching the rest of the portfolio. Everything else stays under <code>results/figures/</code>.</p>
+<div id="cell-16" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:58.463520Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:58.463427Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:58.466652Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:58.466065Z&quot;}}" data-execution_count="8">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>src <span class="op">=</span> FIGURES_DIR <span class="op">/</span> <span class="st">"all_tests_comparison.png"</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>dst <span class="op">=</span> HEADLINE_DIR <span class="op">/</span> <span class="st">"01_all_tests_comparison.png"</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> src.exists():</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    shutil.copy(src, dst)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Saved: </span><span class="sc">{</span>repo_path(dst)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Embedded in README.md as: ![Results](figures/headline/01_all_tests_comparison.png)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Saved: figures/headline/01_all_tests_comparison.png

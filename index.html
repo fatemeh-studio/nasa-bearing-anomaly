@@ -193,6 +193,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#what-came-out" id="toc-what-came-out" class="nav-link active" data-scroll-target="#what-came-out">What came out</a></li>
   <li><a href="#the-finding-that-changed-the-method" id="toc-the-finding-that-changed-the-method" class="nav-link" data-scroll-target="#the-finding-that-changed-the-method">The finding that changed the method</a></li>
+  <li><a href="#the-claim-this-project-tested-on-itself" id="toc-the-claim-this-project-tested-on-itself" class="nav-link" data-scroll-target="#the-claim-this-project-tested-on-itself">The claim this project tested on itself</a></li>
   <li><a href="#where-to-go-next" id="toc-where-to-go-next" class="nav-link" data-scroll-target="#where-to-go-next">Where to go next</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/blob/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fatemeh-studio/nasa-bearing-anomaly/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
@@ -322,10 +323,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Every run alerts on its very first acquisition, so the “lead time” is just the length of the run. This is not a bug. <code>IsolationForest(contamination=c)</code> labels that fraction of its <strong>training</strong> set anomalous by construction, and the training set is the first 60% — the part assumed healthy. Measured flagged fractions of the training window: 5.03%, 5.08% and 8.01% against configured 0.05, 0.05 and 0.08.</p>
 <p>So a usable number needs two things the naive metric lacks: a <strong>sustained-alert rule</strong> (k flagged files out of the last m, never a single window) and a score threshold <strong>calibrated on held-out healthy data</strong> rather than read off <code>is_anomaly</code>. How k and m are chosen without fitting them to a flattering answer is the subject of <a href="./methodology.html">the method page</a>.</p>
 </section>
+<section id="the-claim-this-project-tested-on-itself" class="level2">
+<h2 class="anchored" data-anchor-id="the-claim-this-project-tested-on-itself">The claim this project tested on itself</h2>
+<p>Pairing NASA IMS with an Isolation Forest is a common exercise, and the differentiator usually claimed for it is physics-informed features: energy measured in narrow bands at the frequencies the bearing’s geometry predicts. This project built those features and then tested whether they help, rather than asserting that they do.</p>
+<p><strong>They name the fault correctly.</strong> Measured on the envelope spectrum, defect-band energy rises <strong>354×</strong> on Test 3’s failed bearing against 8.8× on a healthy bearing on the same shaft — and the band that rises most is the one the documented failure mode predicts, in three of four cases.</p>
+<p><strong>They do not detect it earlier.</strong> Across five feature sets scored with an identical selection procedure, the best spectral arm moves lead time by <strong>1.5 hours out of 57</strong>, and on Test 1 four of the five fire within one file of each other. The table, and the reason, are on <a href="./methodology.html">the method page</a>.</p>
+<p>That is a negative result, and it is here rather than buried because the alternative was to assume the opposite.</p>
+</section>
 <section id="where-to-go-next" class="level2">
 <h2 class="anchored" data-anchor-id="where-to-go-next">Where to go next</h2>
 <ul>
-<li><strong><a href="./methodology.html">Method</a></strong> — the features the detector actually reads, the defect-frequency machinery that is implemented but not yet joined to it, and how the alert rule is selected without fitting it to a flattering answer.</li>
+<li><strong><a href="./methodology.html">Method</a></strong> — the features the detector reads, the ablation that tested whether defect-frequency features earn a place beside them, and how the alert rule is selected without fitting it to a flattering answer.</li>
 <li><strong><a href="./data.html">Data</a></strong> — the dataset, and a documented discrepancy in it: the distributed archive holds 6,324 files for Test 3 where the official documentation says 4,448, and the failure lives entirely in the undocumented remainder.</li>
 <li><strong><a href="./business.html">What it is worth</a></strong> — why lead time is not multiplied by an hourly rate, and what it is worth instead.</li>
 <li><strong>Notebooks <a href="./notebooks/01_data_exploration.html">01</a> · <a href="./notebooks/02_feature_engineering.html">02</a> · <a href="./notebooks/03_anomaly_detection.html">03</a> · <a href="./notebooks/04_results_visualization.html">04</a></strong> — the analysis end to end.</li>
@@ -850,23 +858,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>are chosen without fitting them to a flattering answer is the subject of</span>
 <span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">the method page</span><span class="co">](methodology.qmd)</span>.</span>
 <span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="fu">## Where to go next</span></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="fu">## The claim this project tested on itself</span></span>
 <span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**[Method](methodology.qmd)** — the features the detector actually reads, the</span>
-<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>  defect-frequency machinery that is implemented but not yet joined to it, and how the</span>
-<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>  alert rule is selected without fitting it to a flattering answer.</span>
-<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**[Data](data.qmd)** — the dataset, and a documented discrepancy in it: the</span>
-<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>  distributed archive holds 6,324 files for Test 3 where the official documentation</span>
-<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>  says 4,448, and the failure lives entirely in the undocumented remainder.</span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**[What it is worth](business.qmd)** — why lead time is not multiplied by an hourly</span>
-<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>  rate, and what it is worth instead.</span>
-<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Notebooks <span class="co">[</span><span class="ot">01</span><span class="co">](notebooks/01_data_exploration.ipynb)</span> ·</span>
-<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">02</span><span class="co">](notebooks/02_feature_engineering.ipynb)</span> ·</span>
-<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">03</span><span class="co">](notebooks/03_anomaly_detection.ipynb)</span> ·</span>
-<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">04</span><span class="co">](notebooks/04_results_visualization.ipynb)</span>** — the analysis end to end.</span>
-<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>Every number on this site is produced by code in the repository and traces to</span>
-<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a><span class="in">`results/reports/business_summary.csv`</span>.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>Pairing NASA IMS with an Isolation Forest is a common exercise, and the differentiator</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>usually claimed for it is physics-informed features: energy measured in narrow bands at</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>the frequencies the bearing's geometry predicts. This project built those features and</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>then tested whether they help, rather than asserting that they do.</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>**They name the fault correctly.** Measured on the envelope spectrum, defect-band energy</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>rises **354×** on Test 3's failed bearing against 8.8× on a healthy bearing on the same</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>shaft — and the band that rises most is the one the documented failure mode predicts, in</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>three of four cases.</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>**They do not detect it earlier.** Across five feature sets scored with an identical</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>selection procedure, the best spectral arm moves lead time by **1.5 hours out of 57**,</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>and on Test 1 four of the five fire within one file of each other. The table, and the</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>reason, are on <span class="co">[</span><span class="ot">the method page</span><span class="co">](methodology.qmd)</span>.</span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>That is a negative result, and it is here rather than buried because the alternative was</span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>to assume the opposite.</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="fu">## Where to go next</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**[Method](methodology.qmd)** — the features the detector reads, the ablation that</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a>  tested whether defect-frequency features earn a place beside them, and how the alert</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>  rule is selected without fitting it to a flattering answer.</span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**[Data](data.qmd)** — the dataset, and a documented discrepancy in it: the</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>  distributed archive holds 6,324 files for Test 3 where the official documentation</span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>  says 4,448, and the failure lives entirely in the undocumented remainder.</span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**[What it is worth](business.qmd)** — why lead time is not multiplied by an hourly</span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>  rate, and what it is worth instead.</span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Notebooks <span class="co">[</span><span class="ot">01</span><span class="co">](notebooks/01_data_exploration.ipynb)</span> ·</span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">02</span><span class="co">](notebooks/02_feature_engineering.ipynb)</span> ·</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">03</span><span class="co">](notebooks/03_anomaly_detection.ipynb)</span> ·</span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">04</span><span class="co">](notebooks/04_results_visualization.ipynb)</span>** — the analysis end to end.</span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a>Every number on this site is produced by code in the repository and traces to</span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a><span class="in">`results/reports/business_summary.csv`</span>.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

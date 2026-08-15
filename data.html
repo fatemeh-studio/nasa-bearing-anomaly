@@ -199,6 +199,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#expected-layout" id="toc-expected-layout" class="nav-link" data-scroll-target="#expected-layout">Expected layout</a></li>
   <li><a href="#bearing-geometry-and-defect-frequencies" id="toc-bearing-geometry-and-defect-frequencies" class="nav-link" data-scroll-target="#bearing-geometry-and-defect-frequencies">Bearing geometry and defect frequencies</a></li>
   <li><a href="#dataprocessed-the-committed-summary-tables" id="toc-dataprocessed-the-committed-summary-tables" class="nav-link" data-scroll-target="#dataprocessed-the-committed-summary-tables"><code>data/processed/</code> — the committed summary tables</a></li>
+  <li><a href="#dataprocessed-the-committed-waveform-feature-tables" id="toc-dataprocessed-the-committed-waveform-feature-tables" class="nav-link" data-scroll-target="#dataprocessed-the-committed-waveform-feature-tables"><code>data/processed/</code> — the committed waveform-feature tables</a></li>
   <li><a href="#set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count" id="toc-set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count" class="nav-link" data-scroll-target="#set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count">Set 3 discrepancy (the <code>4th_test</code> folder and the 4,448 vs 6,324 file count)</a></li>
   <li><a href="#the-post-shutdown-tail-is-a-different-length-in-each-test" id="toc-the-post-shutdown-tail-is-a-different-length-in-each-test" class="nav-link" data-scroll-target="#the-post-shutdown-tail-is-a-different-length-in-each-test">The post-shutdown tail is a different length in each test</a></li>
   <li><a href="#provenance-chain" id="toc-provenance-chain" class="nav-link" data-scroll-target="#provenance-chain">Provenance chain</a></li>
@@ -543,6 +544,144 @@ file, which has to keep its H1 to read properly on GitHub.
 <p><strong><code>_kurt</code> is excess kurtosis, so Gaussian noise reads 0, not 3.</strong> The computation subtracts 3 (Fisher definition). This matters because the bearing-diagnostics literature usually quotes <em>non-excess</em> kurtosis, where healthy is 3, early fault 4–6 and severe fault above 10 — apply those numbers to this column and every threshold is 3 too high. Subtract 3 from any published threshold before using it here. Measured on Test 3, Bearing 3: <strong>healthy median 0.15</strong>, final 30 files median 3.17, maximum 16.74.</p>
 <p>Test 1 has eight channels and so 48 statistic columns; Tests 2 and 3 have four channels and 24. There is no <code>_ch2</code> column for Tests 2 and 3, because there was no second accelerometer.</p>
 </section>
+<section id="dataprocessed-the-committed-waveform-feature-tables" class="level3">
+<h3 class="anchored" data-anchor-id="dataprocessed-the-committed-waveform-feature-tables"><code>data/processed/</code> — the committed waveform-feature tables</h3>
+<p>Regenerate with <code>python -m nasa_bearing_anomaly.features --test all --spectral</code>, which needs <code>raw/</code> and takes about eight minutes. The summary tables above collapse each acquisition to six statistics and discard the waveform, so nothing derived from a spectrum can be recovered from them. These tables are the second pass that keeps what a spectrum shows.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Rows</th>
+<th>Columns</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>test1_spectral.csv</code></td>
+<td>2,156</td>
+<td>144</td>
+<td>2.9 MB</td>
+</tr>
+<tr class="even">
+<td><code>test2_spectral.csv</code></td>
+<td>984</td>
+<td>72</td>
+<td>676 kB</td>
+</tr>
+<tr class="odd">
+<td><code>test3_spectral.csv</code></td>
+<td>6,324</td>
+<td>72</td>
+<td>4.3 MB</td>
+</tr>
+</tbody>
+</table>
+<p>Indexed by <code>file_index</code>, one row per acquisition, so it joins <code>test{N}_raw.csv</code> row for row. Eighteen features per channel, named <code>{Bearing}_ch{N}_{feature}</code>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 46%">
+<col style="width: 53%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>_crest_factor</code></td>
+<td>peak / RMS, dimensionless. Impulsiveness — see the direction warning below</td>
+</tr>
+<tr class="even">
+<td><code>_shape_factor</code></td>
+<td>RMS / mean absolute value</td>
+</tr>
+<tr class="odd">
+<td><code>_impulse_factor</code></td>
+<td>peak / mean absolute value</td>
+</tr>
+<tr class="even">
+<td><code>_clearance_factor</code></td>
+<td>peak / (mean square-root amplitude)², dimensionless</td>
+</tr>
+<tr class="odd">
+<td><code>_energy</code></td>
+<td>sum of squares over the 20,480 samples, g²</td>
+</tr>
+<tr class="even">
+<td><code>_mean_abs</code></td>
+<td>mean absolute amplitude, in g</td>
+</tr>
+<tr class="odd">
+<td><code>_spectral_entropy</code></td>
+<td>Shannon entropy of the normalised Welch PSD, in [0, 1]. <strong>Higher when healthy</strong> on all three runs</td>
+</tr>
+<tr class="even">
+<td><code>_high_freq_ratio</code></td>
+<td>share of PSD power above 5 kHz, in [0, 1]. Direction is <strong>not reliable</strong> — see below</td>
+</tr>
+<tr class="odd">
+<td><code>_dominant_freq_hz</code></td>
+<td>frequency of the largest PSD bin, Hz</td>
+</tr>
+<tr class="even">
+<td><code>_psd_mean</code>, <code>_psd_std</code></td>
+<td>mean and standard deviation of the PSD, g²/Hz</td>
+</tr>
+<tr class="odd">
+<td><code>_bpfo_energy</code>, <code>_bpfi_energy</code>, <code>_bsf_energy</code></td>
+<td>PSD power summed over three harmonic bands at that defect frequency, g²/Hz</td>
+</tr>
+<tr class="even">
+<td><code>_env_kurtosis</code></td>
+<td>excess kurtosis of the envelope, dimensionless</td>
+</tr>
+<tr class="odd">
+<td><code>_env_bpfo_energy</code>, <code>_env_bpfi_energy</code>, <code>_env_bsf_energy</code></td>
+<td>the same three bands measured on the <strong>envelope</strong> spectrum</td>
+</tr>
+</tbody>
+</table>
+<p><strong>There is no <code>_ftf_energy</code> column, and its absence is derived rather than chosen.</strong> The Welch estimate uses a 0.1 s window, giving 10 Hz bins, and a band is required to span at least three bins so that it is an integral rather than a point sample. FTF is 14.775 Hz, so any such band around it reaches 0 Hz, where the DC bin carries the signal mean rather than defect energy. A longer window would let it back in automatically. No test in this dataset has a cage failure, which is what FTF diagnoses. Measured 2026-08-15: with the previous fixed 5 Hz half-width every band at every harmonic resolved to exactly <strong>one</strong> bin, and <code>ftf_energy</code> separated healthy from faulty Test 3 data by 0.02 pooled standard deviations.</p>
+<p><strong>The envelope columns measure the same defect frequencies a different way, and it is the physically correct way.</strong> A localised defect does not radiate at its defect frequency; each impact rings a structural resonance in the kHz range, so the defect rate appears as the <em>modulation</em> of that resonance. The envelope columns band-pass to 2 kHz–Nyquist, take the analytic-signal magnitude, and measure the defect bands on the spectrum of that envelope. The band is fixed in advance rather than fitted.</p>
+<p><strong>Two direction warnings, both measured by <code>notebooks/02_feature_engineering.ipynb</code></strong> from a healthy window to the last 30 live acquisitions of each run:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 30%">
+<col style="width: 30%">
+<col style="width: 30%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Test 1 (inner race)</th>
+<th>Test 2 (outer race)</th>
+<th>Test 3 (outer race)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>_spectral_entropy</code></td>
+<td>0.916 → 0.911</td>
+<td>0.850 → 0.774</td>
+<td>0.911 → 0.860</td>
+</tr>
+<tr class="even">
+<td><code>_high_freq_ratio</code></td>
+<td>0.504 → <strong>0.507</strong></td>
+<td>0.128 → 0.122</td>
+<td>0.318 → 0.232</td>
+</tr>
+</tbody>
+</table>
+<p>Entropy falls with damage on all three, which is the opposite of the naive expectation and is the documented behaviour: healthy noise is broadband and near-flat, which is maximum entropy, and a defect concentrates energy into harmonics. The magnitude varies enough that Test 1 is barely a movement.</p>
+<p><code>_high_freq_ratio</code> is documented to fall for the same reason, and on Test 1 it <strong>rises</strong>. Do not rely on its direction. Test 1 is the inner-race run, and an inner-race defect is amplitude-modulated by shaft rotation, which spreads energy into sidebands rather than concentrating it — that would account for the difference, but nothing here tests it.</p>
+<p><strong>These columns are strongly log-normal.</strong> <code>_env_bpfo_energy</code> spans roughly three orders of magnitude between healthy and failed on Test 3, so a linear reading is dominated by its own tail. Anything comparing them should work in <code>log10</code>.</p>
+<p>Deliberately <strong>absent</strong>, because <code>test{N}_raw.csv</code> already carries them: RMS, standard deviation, absolute maximum, excess kurtosis and skewness. Storing them twice would put two columns in a joined frame for one measurement. Values are written to six significant figures, which is well beyond the precision of the inputs.</p>
+</section>
 <section id="set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count" class="level3">
 <h3 class="anchored" data-anchor-id="set-3-discrepancy-the-4th_test-folder-and-the-4448-vs-6324-file-count">Set 3 discrepancy (the <code>4th_test</code> folder and the 4,448 vs 6,324 file count)</h3>
 <p>This dataset has a well-documented quirk in its third test that is easy to get wrong, so it is worth stating precisely.</p>
@@ -611,9 +750,11 @@ data/processed/test{N}_raw.csv          COMMITTED — a fresh clone starts here
   -&gt; features.py                        rolling windows (10/50), first differences
 data/processed/test{N}_features.csv     gitignored; regenerates in seconds
   -&gt; detection.py                       StandardScaler -&gt; PCA -&gt; Isolation Forest
-results/reports/test{N}_{method}_results.csv   gitignored, 1.6–10.2 MB each
-results/reports/business_summary.csv    COMMITTED — the published numbers
-results/figures/, figures/headline/     COMMITTED — the published figures</code></pre>
+
+data/raw/test{N}/                       the same archive, walked a second time
+  -&gt; features.py --spectral             Welch PSD and envelope, per channel
+data/processed/test{N}_spectral.csv     COMMITTED — joins _raw.csv on file_index</code></pre>
+<p>The second pass is separate rather than folded into the first because the summary tables are published output: regenerating them to add columns would put the three committed numbers at risk for no gain, and keeping them byte-identical is what makes a time-domain-only run comparable against one with spectral features added. results/reports/test{N}_{method}_results.csv gitignored, 1.6–10.2 MB each results/reports/business_summary.csv COMMITTED — the published numbers results/figures/, figures/headline/ COMMITTED — the published figures</p>
 <p><strong><code>business.py</code> is the one deliberate exception to the file-handoff pattern.</strong> <code>run_business</code> re-runs detection in memory rather than reading <code>test{N}_{method}_results.csv</code>, because those scored frames are gitignored — reading them would make every published number depend on a file a fresh clone does not have. The scored frames exist only to pass data from notebook 03 to notebook 04, which recreates them when absent.</p>
 <p>The notebooks run the same chain interactively: <code>01</code> explores <code>*_raw.csv</code>, <code>02</code> builds <code>*_features.csv</code>, <code>03</code> scores it and writes the scored frames, <code>04</code> produces the figures and the business numbers. Only the first arrow needs <code>data/raw/</code>.</p>
 </section>
