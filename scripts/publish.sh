@@ -25,13 +25,40 @@ DRY=0
 
 step() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 
-# ── 1. Notebook outputs, before anything else ──────────────────────────────
+# ── 1. Clean working tree ──────────────────────────────────────────────────
+# quarto publish runs `git stash` when the tree is dirty and then switches
+# branches. Both rewrite notebooks from git, where the clean filter has already
+# stripped the outputs -- which is what emptied all four mid-publish on
+# 2026-08-14. On a clean tree quarto never stashes and never touches them.
+#
+# Checked with `git diff --quiet` rather than `git status`, which reports a
+# notebook as modified whenever its stat cache is stale even though the filtered
+# content is identical. That would block every run.
+step "Working tree clean"
+if git diff --quiet && git diff --cached --quiet; then
+    echo "   nothing uncommitted"
+elif [[ "$DRY" -eq 1 ]]; then
+    echo "   WARNING: uncommitted changes. --dry continues, but a real publish"
+    echo "   would stop here."
+else
+    echo
+    echo "ERROR: uncommitted changes. Commit before publishing." >&2
+    echo "quarto stashes a dirty tree and switches branches, which strips the" >&2
+    echo "notebook outputs this site renders from." >&2
+    echo >&2
+    git status --short >&2
+    exit 1
+fi
+
+# ── 2. Notebook outputs ────────────────────────────────────────────────────
 # This is the failure that is quiet and total. Quarto renders stored outputs; if the
 # working copy has been stripped, every notebook publishes as a code listing with no
 # results -- the exact impression the site exists to prevent -- and nothing errors.
-# Committing a notebook is what strips it: the nbstripout clean filter empties the
-# blob, and a partially-staged file gets reverted to that state by pre-commit's
-# stash cycle. So this is checked on every publish, not assumed.
+# Committing is what strips them, and not only the notebook being committed:
+# measured 2026-08-14, if ANY file has unstaged changes then pre-commit stashes,
+# resets the worktree, and EVERY notebook comes back stripped -- including ones
+# untouched by the commit. Section 1 is what usually prevents that; this stays as
+# the backstop, because rebases and branch switches strip them too.
 step "Notebook outputs present on disk"
 missing=0
 for nb in notebooks/*.ipynb; do
@@ -49,7 +76,7 @@ if [[ "$missing" -eq 1 ]]; then
     exit 1
 fi
 
-# ── 2. The numbers about to be published ───────────────────────────────────
+# ── 3. The numbers about to be published ───────────────────────────────────
 # Printed rather than checked. The README and the site carry the same headline
 # figures by design, and the rule keeping them together is that they change in the
 # same commit -- so the useful thing here is to put the numbers in front of whoever
@@ -63,7 +90,7 @@ else
     exit 1
 fi
 
-# ── 3. Gates ───────────────────────────────────────────────────────────────
+# ── 4. Gates ───────────────────────────────────────────────────────────────
 step "ruff check"
 ruff check .
 
@@ -73,11 +100,11 @@ ruff format --check .
 step "pytest"
 pytest -q
 
-# ── 4. Render ──────────────────────────────────────────────────────────────
+# ── 5. Render ──────────────────────────────────────────────────────────────
 step "quarto render"
 quarto render
 
-# ── 5. Publish ─────────────────────────────────────────────────────────────
+# ── 6. Publish ─────────────────────────────────────────────────────────────
 if [[ "$DRY" -eq 1 ]]; then
     step "Dry run -- stopping before publish"
     echo "   Site built in _site/. Open _site/index.html in a private window."
