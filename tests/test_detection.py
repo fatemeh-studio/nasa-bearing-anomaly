@@ -173,3 +173,33 @@ class TestSelectFeatures:
         df["global_ch1_rms"] = 0.1  # matches _rms keyword, no bearing prefix
         cols = select_features(df, bearing_prefix="Bearing99")
         assert "global_ch1_rms" in cols
+
+
+# ── Determinism ────────────────────────────────────────────────────────────
+
+
+class TestDeterminism:
+    def test_scores_do_not_depend_on_the_global_random_state(self):
+        """
+        Regression, 2026-08-15. PCA was constructed without ``random_state``, and
+        sklearn chooses its SVD solver from the matrix shape: past roughly 40
+        columns it switches to ``randomized``, which without a seed draws from the
+        global numpy RNG. The same feature set then scored differently from a
+        notebook than from the CLI -- the alarm moved 45 files and the lead time
+        7.5 h. Small feature sets hid it, because they get a deterministic solver.
+
+        The frame below is deliberately wide and long enough (600 training rows,
+        60 columns) to land in the randomized regime, which is the only regime
+        where this can fail.
+        """
+        rng = np.random.default_rng(0)
+        df = pd.DataFrame(rng.normal(size=(1000, 60)), columns=[f"feature_{i}" for i in range(60)])
+        cols = list(df.columns)
+
+        scores = []
+        for seed in (0, 12345):
+            np.random.seed(seed)
+            detector = IsolationForestDetector()
+            scores.append(detector.fit_predict(df, cols)["anomaly_score"].to_numpy())
+
+        assert np.array_equal(scores[0], scores[1])

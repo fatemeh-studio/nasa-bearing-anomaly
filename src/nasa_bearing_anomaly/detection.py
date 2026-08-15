@@ -139,7 +139,15 @@ class IsolationForestDetector:
         X_scaled = self.scaler.fit_transform(X)
         if self.use_pca:
             n_components = min(self._pca_n_components, X_scaled.shape[0], X_scaled.shape[1])
-            self.pca = PCA(n_components=n_components)
+            # random_state is not optional here. sklearn picks the SVD solver from
+            # the matrix shape: at roughly 40 columns or fewer it uses a
+            # deterministic eigendecomposition, but above that it switches to
+            # `randomized`, which without a seed draws from the global numpy RNG.
+            # The result then depends on whatever consumed randomness earlier in
+            # the process, so the same arm scored from a notebook and from the CLI
+            # disagreed -- measured 2026-08-15 on the 92-column arm, where the
+            # alarm moved 45 files and the lead time 7.5 h between runs.
+            self.pca = PCA(n_components=n_components, random_state=self.random_state)
             X_scaled = self.pca.fit_transform(X_scaled)
 
         self.model.fit(X_scaled)
