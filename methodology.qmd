@@ -1,13 +1,18 @@
 ---
 title: "Method"
-subtitle: "Physics-informed features, and an alert rule chosen without looking at the answer"
+subtitle: "What the detector reads, and an alert rule chosen without looking at the answer"
 ---
 
-The model here is ordinary — a scikit-learn Isolation Forest, which is the most
-common choice made on this dataset. What the project rests on instead is the two
-things either side of it: features derived from bearing kinematics rather than
-picked off a list, and a lead-time metric built so that it cannot be tuned into a
-flattering number.
+The model here is ordinary — a scikit-learn Isolation Forest, which is the most common
+choice made on this dataset. What the project rests on is not the model but the layer
+after it: a lead-time metric built so that it cannot be tuned into a flattering number.
+
+**The feature scope, stated up front.** The features below fall into two groups: those the
+published pipeline actually scores, and the defect-frequency machinery that is implemented
+and tested but not yet joined to it. The second group needs raw waveforms, and the pipeline
+scores a table of per-file summary statistics, so nothing in it reaches the model. The split
+is marked throughout, because the difference between what this project measures and what it
+is set up to measure is exactly the kind of thing a method page exists to be honest about.
 
 ## Why a bearing defect has a frequency
 
@@ -28,39 +33,70 @@ frequencies it yields for this bearing, their provenance, and which one carries 
 in which test. They are properties of the rig rather than choices made here, so they live
 with the data and are stated once.
 
-This is what makes a fault *locatable* rather than merely detectable. Energy rising at the
-outer-race pass frequency and its harmonics says **outer race** — it does not say
-"something is wrong". Every feature below exists to make that structure visible to a model
-that has no idea what a bearing is.
+This is what would make a fault *locatable* rather than merely detectable. Energy rising at
+the outer-race pass frequency and its harmonics says **outer race** — it does not say
+"something is wrong". That is what the frequency-domain features are built to see, and it
+is the part not yet wired into the published result.
 
-## The features, and what each is for
+## What the detector reads
 
-**Time domain** — cheap, and the first thing to move:
+`loading.py` reduces each 20,480-sample acquisition to six statistics per channel: RMS,
+mean, standard deviation, absolute maximum, excess kurtosis and skewness. `features.py`
+then adds, for the RMS and kurtosis columns only, rolling mean, standard deviation and
+maximum over windows of 10 and 50 files, plus first differences and their absolute values.
 
-- **RMS** — total vibration energy. The primary degradation indicator, and on this
-  data it rises 11.4× above baseline before Test 3's bearing fails.
-- **Kurtosis** — the fourth moment, sensitive to *impulsiveness* rather than
-  amplitude. A spall produces sharp repeated impacts, which raise kurtosis while RMS
-  is still near baseline, so it can lead RMS. Note this project computes **excess**
-  kurtosis, where Gaussian reads 0 and not 3 — every threshold in the bearing
-  literature is quoted 3 too high for this column. See [the data
-  documentation](data.qmd).
-- **Crest factor** and **clearance factor** — peak-to-average shape ratios, the same
-  impulsiveness idea normalised differently.
+The detector selects from that table by substring — `_rms`, `_kurt`, `_std`, `_max` — and
+by the failed bearing's prefix. Mean and skewness are computed and then not selected. For
+Test 3, Bearing 3 that is **20 columns**; for Test 1, which carries two accelerometers per
+bearing, **40**.
 
-**Frequency domain**, from a Welch power spectral density estimate:
+- **RMS** — total vibration energy. The primary degradation indicator, and on this data it
+  rises 11.4× above baseline before Test 3's bearing fails.
+- **Kurtosis** — the fourth moment, sensitive to *impulsiveness* rather than amplitude. A
+  spall produces sharp repeated impacts, which raise kurtosis while RMS is still near
+  baseline, so it can lead RMS. Note this project computes **excess** kurtosis, where
+  Gaussian reads 0 and not 3 — every threshold in the bearing literature is quoted 3 too
+  high for this column. See [the data documentation](data.qmd).
+- **Standard deviation and absolute maximum** — for a near-zero-mean signal the first is
+  numerically close to RMS, and the second is the peak that a crest factor would be
+  built from.
+- **The rolling and difference columns are 16 of the 20.** They carry the *rate* of
+  degradation rather than its level, which is what lets an alert fire while the level
+  itself is still unremarkable.
 
-- **Defect-frequency band energy** — power in narrow bands around BPFO, BPFI, BSF and
-  their harmonics. This is the physics-informed feature proper: it asks the specific
-  question the geometry poses.
+Every one of these is a time-domain quantity. None of them knows what a bearing is.
+
+## Implemented, and not yet joined to the pipeline
+
+`FeatureExtractor` computes the following from a raw 1-D waveform. Each is exercised by
+`tests/test_features.py`, and notebook 02 demonstrates them on synthetic healthy and faulty
+signals — but the detection pipeline never loads a waveform, so none of them appears in the
+feature table the model sees.
+
+**Frequency domain**, from a Welch power spectral density (PSD) estimate:
+
+- **Defect-frequency band energy** — power in narrow bands around BPFO, BPFI, BSF and FTF
+  and their first three harmonics. This is the physics-informed feature proper: it asks the
+  specific question the geometry poses.
 - **Spectral entropy** — how evenly energy is spread across the spectrum.
-- **High-frequency ratio** — proportion of energy above a cutoff.
+- **High-frequency ratio** — proportion of energy above 5 kHz.
+
+**Time domain**, shape ratios the summary table does not carry:
+
+- **Crest factor** and **clearance factor** — peak-to-average ratios, the same
+  impulsiveness idea as kurtosis, normalised differently.
+
+Joining these to the pipeline costs one pass over the 6.2 GB raw archive. Whether they earn
+their place over RMS and kurtosis alone is then an ablation rather than an assertion, and
+that experiment has not been run.
 
 ## Three feature directions that are the opposite of the intuition
 
-Each of these is a trap that produces a confidently wrong reading, so they are worth
-stating plainly — together with how firmly each is actually established here, which
-differs between them.
+These are properties of the features in the section above — established on synthetic signals
+and by the test suite, not measured on this dataset's published result, since none of them
+is in it. Each is a trap that produces a confidently wrong reading, so they are worth
+stating plainly, together with how firmly each is actually established, which differs
+between them.
 
 - **Spectral entropy is *higher* in healthy bearings, not lower.** The intuition says
   a fault means disorder means high entropy. The opposite holds: healthy bearing noise
@@ -87,8 +123,8 @@ definitions. Anything relying on the latter two should re-derive them first.
 
 ## The detector
 
-`StandardScaler` → optional PCA → `IsolationForest`, fitted on the **first 60%** of
-each series on the assumption that a run-to-failure rig starts healthy, then scoring
+`StandardScaler` → `PCA` (10 components) → `IsolationForest`, fitted on the **first 60%**
+of each series on the assumption that a run-to-failure rig starts healthy, then scoring
 the whole series. Isolation Forest suits the problem because it needs no labels and
 isolates outliers by random partitioning, which is cheap and explainable.
 
@@ -156,6 +192,11 @@ shaft stops. Test 1 never went quiet at all and ends on its RMS peak, so the usu
 
 ## What this does not establish
 
+- **The detector uses no frequency-domain feature.** Everything it scores is a
+  time-domain statistic or a rolling transform of one. The defect-frequency machinery is
+  implemented and tested but not joined to the pipeline, so this result neither supports
+  nor refutes the claim that bearing kinematics improve early detection. Connecting the
+  two, and ablating the difference, is the next piece of work.
 - **Three runs is three samples.** The alert rule is selected per run against that
   run's own healthy data. That is correct procedure, and it is not the same as
   validating a fixed rule on an unseen rig.
@@ -165,6 +206,3 @@ shaft stops. Test 1 never went quiet at all and ends on its RMS peak, so the usu
   last live acquisition is taken as the failure — but no independent ground-truth
   failure timestamp exists to check that against, and it ties the number to when the
   rig happened to stop.
-- **The defect-frequency features have not been ablated.** Whether they earn their
-  place over RMS and kurtosis alone is the obvious next experiment and has not been
-  run.

@@ -1,15 +1,14 @@
 # NASA IMS Bearing Anomaly Detection
 
 Unsupervised detection of rolling-element bearing failure in three run-to-failure test
-rigs, 2003–2004 — physics-informed vibration features scored by an Isolation Forest.
+rigs, 2003–2004 — time-domain vibration features scored by an Isolation Forest.
 
 [![CI](https://github.com/fatemeh-studio/nasa-bearing-anomaly/actions/workflows/ci.yml/badge.svg)](https://github.com/fatemeh-studio/nasa-bearing-anomaly/actions/workflows/ci.yml)
 [![Site](https://img.shields.io/badge/analysis-live%20site-blue)](https://fatemeh-studio.github.io/nasa-bearing-anomaly/)
 
 **[Read the full analysis →](https://fatemeh-studio.github.io/nasa-bearing-anomaly/)**
 The method, the data documentation and all four notebooks rendered with every figure.
-**Notebooks in this repo are output-stripped by design**, so github.com shows code
-without results — the site is where they are.
+**Notebooks in this repo are output-stripped by design**, so github.com shows code, not results.
 
 ![Detection results across all three test runs](figures/headline/01_all_tests_comparison.png)
 
@@ -18,6 +17,8 @@ without results — the site is where they are.
 - **54–80 hours of warning before failure, with zero false alarms on held-out healthy
   data** — 79.5 h, 53.7 h and 57.0 h for Tests 1–3, against 0 sustained alarms in
   323 / 147 / 949 healthy files. Upper bounds of fewer than 1 in N, not measured zeros.
+  Test 3 is the least stable: tightening the calibrated false-alarm rate from 1% to 0.5%
+  moves it from 57 h to 26 h, while Tests 1 and 2 hold within 1 h across that range.
 - **The obvious "first alert" metric is meaningless here, measurably so.** All three runs
   flag file 0, because `IsolationForest(contamination=c)` labels that fraction of its own
   *training* window anomalous by construction. Lead time is therefore read from a score
@@ -30,23 +31,18 @@ without results — the site is where they are.
   each run" as the dataset documentation states. Test 1 ends on its RMS peak, so dropping
   one file there discards the failure itself.
 
-Test 3's lead time is the least stable: tightening the calibrated false-alarm rate from
-1% to 0.5% moves it from 57 h to 26 h. Tests 1 and 2 hold within 1 h across that range.
-
 ## On the site
 
 - **[Method](https://fatemeh-studio.github.io/nasa-bearing-anomaly/methodology.html)** — features, the counterintuitive directions, rule selection
 - **[Data](https://fatemeh-studio.github.io/nasa-bearing-anomaly/data.html)** — source, licence, column dictionary, the Set 3 discrepancy in full
-- **[What the warning is worth](https://fatemeh-studio.github.io/nasa-bearing-anomaly/business.html)** — the cost model, stated as assumptions
 - **[Notebooks 01–04](https://fatemeh-studio.github.io/nasa-bearing-anomaly/notebooks/01_data_exploration.html)** — the analysis, with every figure
 
 ## What the warning is worth
 
 Lead time is **not** multiplied by an hourly rate — that prices hours during which the
-machine was still running. Warning converts an unplanned stoppage into a planned one, so
-the saving is the difference between the two stoppage lengths, realised only if the
-warning is long enough to order the part and book the window. Reported as a sensitivity
-table over stated assumptions rather than as one euro figure —
+machine was still running. Warning converts an unplanned stoppage into a planned one, so the
+saving is the difference between the two, and only if the warning is long enough to order the
+part and book the window. Reported as a sensitivity table over stated assumptions —
 [the full model is on the site](https://fatemeh-studio.github.io/nasa-bearing-anomaly/business.html).
 
 ## Data
@@ -87,6 +83,10 @@ results/                   generated figures and summary tables
 
 ## Limitations
 
+- **The detector reads time-domain features only.** `features.py` computes defect-frequency
+  band energy, spectral entropy and the high-frequency ratio from raw waveforms, and they are
+  tested — but the pipeline scores the committed summary tables, so none of them reaches the
+  model. Connecting them, and ablating whether they earn their place, is the next step.
 - **Lead time is anchored on the end of each run.** The rigs ran to destruction, so the
   last live acquisition is taken as the failure — but no independent ground-truth failure
   timestamp exists to check that against.
@@ -94,8 +94,6 @@ results/                   generated figures and summary tables
   147–949 files; nothing here resolves a rate below roughly 1 in 1,000.
 - **Three runs is three samples.** The alert rule is chosen per run against that run's own
   healthy data — correct procedure, but not the same as validating it on an unseen rig.
-- **Next:** ablate the defect-frequency band features, to test whether they earn their
-  place over RMS and kurtosis alone.
 
 ## Licence
 

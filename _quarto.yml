@@ -22,8 +22,8 @@ project:
 website:
   title: "NASA IMS Bearing Anomaly Detection"
   description: >-
-    Physics-informed unsupervised anomaly detection on the NASA IMS bearing
-    run-to-failure dataset, with failure lead time paired with its false-alarm rate.
+    Unsupervised anomaly detection on the NASA IMS bearing run-to-failure dataset,
+    with failure lead time paired with its false-alarm rate.
   site-url: https://fatemeh-studio.github.io/nasa-bearing-anomaly/
   repo-url: https://github.com/fatemeh-studio/nasa-bearing-anomaly
   repo-actions: [source, issue]

@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nasa-bearing-anomaly"
 version = "0.1.0"
-description = "Physics-informed unsupervised anomaly detection on the NASA IMS bearing run-to-failure dataset"
+description = "Unsupervised anomaly detection on the NASA IMS bearing run-to-failure dataset"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

@@ -61,8 +61,9 @@ are chosen without fitting them to a flattering answer is the subject of
 
 ## Where to go next
 
-- **[Method](methodology.qmd)** — defect-frequency features, why three of them point
-  the opposite way to intuition, and how the alert rule is selected.
+- **[Method](methodology.qmd)** — the features the detector actually reads, the
+  defect-frequency machinery that is implemented but not yet joined to it, and how the
+  alert rule is selected without fitting it to a flattering answer.
 - **[Data](data.qmd)** — the dataset, and a documented discrepancy in it: the
   distributed archive holds 6,324 files for Test 3 where the official documentation
   says 4,448, and the failure lives entirely in the undocumented remainder.
