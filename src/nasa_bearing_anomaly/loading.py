@@ -62,27 +62,33 @@ def load_single_file(filepath: Path) -> np.ndarray:
     return data
 
 
-def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.DataFrame:
+def acquisition_files(test_id: int, max_files: int = None) -> tuple[list[Path], list[str]]:
     """
-    Load all files from a single test run and aggregate statistics per file.
+    List a test's raw acquisition files and check the channel labelling agrees.
 
-    Instead of storing all 20,480 × N_files raw samples (too large),
-    we compute per-file statistical summaries which preserve the temporal trend.
+    Shared by every pass over the raw archive, so the channel guard cannot be
+    applied by one caller and skipped by another.
 
     Parameters
     ----------
     test_id : int
-        1, 2, or 3
+        1, 2 or 3.
     max_files : int, optional
-        Limit number of files (useful for quick testing)
-    verbose : bool
-        Show progress bar
+        Keep only the first N files, in filename order.
 
     Returns
     -------
-    pd.DataFrame
-        One row per file (time step), columns = statistical features per channel.
-        Index = file_index (0, 1, 2, ...)
+    tuple of (list of pathlib.Path, list of str)
+        The acquisition files in chronological order, and the channel names from
+        ``TEST_CONFIG`` that label them positionally.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the raw directory is absent or holds no acquisition files.
+    ValueError
+        If the files carry a different number of channels than ``TEST_CONFIG``
+        names for this test.
     """
     config = TEST_CONFIG[test_id]
     raw_dir = config["raw_dir"]
@@ -116,9 +122,9 @@ def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.D
     if max_files:
         files = files[:max_files]
 
-    # Checked once, here, rather than per file: the per-file body below is wrapped
-    # in `except Exception: continue`, which would turn a raise into a skip message
-    # and let the run finish on mislabelled data.
+    # Checked once, here, rather than per file: the per-file bodies that consume
+    # this list are wrapped in `except Exception: continue`, which would turn a
+    # raise into a skip message and let the run finish on mislabelled data.
     n_channels = load_single_file(files[0]).shape[1]
     if n_channels != len(columns):
         raise ValueError(
@@ -127,6 +133,35 @@ def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.D
             f"mismatch mislabels every channel instead of failing. Per-test channel "
             f"counts are in data/README.md."
         )
+
+    return files, columns
+
+
+def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.DataFrame:
+    """
+    Load all files from a single test run and aggregate statistics per file.
+
+    Instead of storing all 20,480 × N_files raw samples (too large),
+    we compute per-file statistical summaries which preserve the temporal trend.
+
+    Parameters
+    ----------
+    test_id : int
+        1, 2, or 3
+    max_files : int, optional
+        Limit number of files (useful for quick testing)
+    verbose : bool
+        Show progress bar
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per file (time step), columns = statistical features per channel.
+        Index = file_index (0, 1, 2, ...)
+    """
+    config = TEST_CONFIG[test_id]
+    raw_dir = config["raw_dir"]
+    files, columns = acquisition_files(test_id, max_files)
 
     if verbose:
         print(f"\nLoading Test {test_id}: {len(files)} files from {raw_dir}")

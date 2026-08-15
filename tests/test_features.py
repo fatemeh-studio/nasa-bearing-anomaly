@@ -9,10 +9,12 @@ import pandas as pd
 import pytest
 
 from nasa_bearing_anomaly.features import (
+    SUMMARY_DUPLICATE_KEYS,
     FeatureExtractor,
     add_change_rate_features,
     add_rolling_features,
 )
+from nasa_bearing_anomaly.loading import _kurtosis, _skewness
 
 FS = 20000  # Hz
 
@@ -193,6 +195,65 @@ class TestBandResolution:
         for name in ("BPFO_Hz", "BPFI_Hz", "BSF_Hz"):
             assert extractor.band_is_resolvable(extractor.defect_freqs[name]), name
             assert name in extractor.band_energy_freqs
+
+
+# ── Spectral Table Contract ────────────────────────────────────────────────
+# test{N}_spectral.csv joins test{N}_raw.csv on file_index, so what it may and
+# may not carry is a contract rather than a preference.
+
+
+class TestSpectralTableContract:
+    PREFIX = "Bearing3_ch1"
+
+    @pytest.fixture
+    def kept_names(self, extractor, healthy_signal):
+        """Names the spectral table keeps, channel prefix stripped."""
+        keys = extractor.extract_from_raw(healthy_signal, channel_name=self.PREFIX)
+        n = len(self.PREFIX) + 1
+        return {k[n:] for k in keys if k[n:] not in SUMMARY_DUPLICATE_KEYS}
+
+    def test_no_name_collides_with_the_summary_table(self, kept_names):
+        """A shared name would put two columns in the joined frame for one measurement."""
+        for stat in ("rms", "mean", "std", "max", "kurt", "skew"):
+            assert stat not in kept_names
+
+    def test_dropped_keys_really_duplicate_the_loader(self, extractor, healthy_signal):
+        """
+        Dropping a key is only safe if loading.py already writes that quantity.
+
+        Two of the five differ in name from the loader's (`kurtosis` against
+        `_kurt`, `peak` against `_max`), so name equality is not enough -- the
+        values have to match, or the drop loses a feature rather than a duplicate.
+        """
+        x = healthy_signal
+        expected = {
+            "rms": np.sqrt(np.mean(x**2)),
+            "std": np.std(x),
+            "kurtosis": _kurtosis(x),
+            "peak": np.max(np.abs(x)),
+            "skewness": _skewness(x),
+        }
+        assert set(expected) == set(SUMMARY_DUPLICATE_KEYS)
+        computed = extractor.extract_time_domain(x)
+        for name, value in expected.items():
+            assert computed[name] == pytest.approx(value), name
+
+    def test_columns_caught_by_the_time_domain_filter_are_known(self, kept_names):
+        """
+        select_features matches `_rms`/`_kurt`/`_std`/`_max` as substrings rather
+        than suffixes, so `psd_std` and `env_kurtosis` read as time-domain columns
+        to it despite being frequency- and envelope-domain. Both must be kept out
+        of a time-domain arm by explicit selection. Pinned here so that a feature
+        added later which collides goes red, instead of quietly widening an arm it
+        does not belong to -- select_features degrades to a smaller set rather
+        than raising, so nothing else would notice.
+        """
+        caught = {
+            name
+            for name in kept_names
+            if any(kw in f"{self.PREFIX}_{name}" for kw in ("_rms", "_kurt", "_std", "_max"))
+        }
+        assert caught == {"psd_std", "env_kurtosis"}
 
 
 # ── Envelope Features ──────────────────────────────────────────────────────

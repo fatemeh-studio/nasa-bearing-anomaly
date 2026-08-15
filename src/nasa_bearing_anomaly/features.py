@@ -41,7 +41,7 @@ import pandas as pd
 from scipy import signal
 
 from .config import BEARING_PARAMS, SAMPLING_RATE_HZ, TEST_CONFIG, repo_path
-from .loading import load_processed
+from .loading import acquisition_files, load_processed, load_single_file, tqdm
 from .physics import compute_defect_frequencies
 
 # ─── Feature Extractor ─────────────────────────────────────────────────────
@@ -444,6 +444,94 @@ class FeatureExtractor:
         return {**td, **fd, **ed}
 
 
+# ─── Waveform Pass over the Raw Archive ────────────────────────────────────
+
+# Keys `extract_from_raw` shares with the summary table loading.py writes --
+# either under the same name (rms, std) or a different name for the same
+# quantity (kurtosis/_kurt, peak/_max, skewness/_skew). Dropped from the
+# spectral table so a join cannot yield two columns for one measurement, and so
+# that `_kurtosis` cannot be picked up a second time by select_features'
+# `_kurt` substring filter, which would silently reweight the time domain.
+SUMMARY_DUPLICATE_KEYS = ("rms", "std", "kurtosis", "peak", "skewness")
+
+
+def extract_spectral(test_id: int, max_files: int = None, verbose: bool = True) -> pd.DataFrame:
+    """
+    Compute waveform features for every acquisition in one test run.
+
+    This is the join the summary pipeline lacks. ``loading.load_test`` reduces
+    each acquisition to six statistics and discards the waveform, so no
+    frequency- or envelope-domain feature can reach the model from that table.
+    This walks the raw archive a second time and keeps what ``FeatureExtractor``
+    computes, one row per acquisition indexed by ``file_index`` so it joins the
+    summary table row for row.
+
+    Costs one pass over the 6.2 GB archive, measured at roughly five minutes for
+    all three tests. Columns already carried by the summary table are dropped --
+    see ``SUMMARY_DUPLICATE_KEYS``.
+
+    Parameters
+    ----------
+    test_id : int
+        1, 2 or 3.
+    max_files : int, optional
+        Limit the number of files. As in ``loading.py`` this also suppresses the
+        write, so a smoke run cannot replace a full table with a partial one.
+    verbose : bool
+        Show a progress bar and the band configuration in use.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per acquisition, indexed by ``file_index``.
+    """
+    files, columns = acquisition_files(test_id, max_files)
+    extractor = FeatureExtractor()
+
+    if verbose:
+        bands = ", ".join(n.replace("_Hz", "") for n in extractor.band_energy_freqs)
+        print(f"\nExtracting waveform features for Test {test_id}: {len(files)} files")
+        print(f"   Bands: {bands}, half-width {extractor.band_halfwidth_hz:.1f} Hz")
+        print(f"   Envelope band: {extractor.envelope_highpass_hz:.0f} Hz to Nyquist")
+
+    records = []
+    for i, filepath in enumerate(tqdm(files, desc=f"Test {test_id}", disable=not verbose)):
+        try:
+            raw = load_single_file(filepath)
+            record = {"file_index": i}
+
+            # The channel guard ran in acquisition_files, before this loop, so a
+            # mismatch cannot be swallowed by the except below.
+            for j, col in enumerate(columns):
+                prefix = f"{col}_"
+                for key, value in extractor.extract_from_raw(raw[:, j], channel_name=col).items():
+                    if key[len(prefix) :] not in SUMMARY_DUPLICATE_KEYS:
+                        record[key] = value
+
+            records.append(record)
+
+        except Exception as e:
+            if verbose:
+                print(f"  Warning: Skipped {filepath.name}: {e}")
+            continue
+
+    if len(records) != len(files):
+        print(f"Warning: {len(files) - len(records)} of {len(files)} files were skipped.")
+
+    df = pd.DataFrame(records).set_index("file_index")
+
+    if max_files:
+        print("Skipped save: --max_files was set, so this table is partial.")
+        return df
+
+    out_path = TEST_CONFIG[test_id]["output_file"].parent / f"test{test_id}_spectral.csv"
+    # Six significant figures: these are derived quantities whose inputs carry
+    # far less precision than that, and full repr doubles the committed file.
+    df.to_csv(out_path, float_format="%.6g")
+    print(f"Saved: {repo_path(out_path)}  ({len(df)} rows, {len(df.columns)} columns)")
+    return df
+
+
 # ─── Rolling and Difference Features over the Summary Table ────────────────
 # This half of the module is what the detection pipeline reads. It adds temporal
 # context -- rate of change rather than level -- to the per-file statistics, and
@@ -537,9 +625,21 @@ def enrich_processed(test_id: int) -> pd.DataFrame:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract features from NASA Bearing Dataset")
     parser.add_argument("--test", type=str, default="all")
+    parser.add_argument(
+        "--spectral",
+        action="store_true",
+        help="Walk the raw archive and write test{N}_spectral.csv, instead of the "
+        "rolling and difference pass over the committed summary tables",
+    )
+    parser.add_argument(
+        "--max_files", type=int, default=None, help="Limit files; suppresses the save"
+    )
     args = parser.parse_args()
 
     tests = [1, 2, 3] if args.test == "all" else [int(args.test)]
     for t in tests:
-        print(f"\nFeature engineering for Test {t}...")
-        enrich_processed(t)
+        if args.spectral:
+            extract_spectral(t, max_files=args.max_files)
+        else:
+            print(f"\nFeature engineering for Test {t}...")
+            enrich_processed(t)
