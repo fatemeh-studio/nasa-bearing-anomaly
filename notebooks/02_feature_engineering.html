@@ -226,12 +226,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p><strong>Question:</strong> which quantities actually separate a healthy bearing from a failing one, and why should they?</p>
-<p>The model is not what makes this work — an Isolation Forest over raw RMS is a few lines. What decides whether it detects anything early is which quantities it is given, and every one below is chosen because bearing physics predicts it will move:</p>
+<p>The model is not what makes this work — an Isolation Forest over raw RMS is a few lines. What decides whether it detects anything early is which quantities it is given. This notebook builds two sets, and only the second currently reaches the detector:</p>
 <ul>
-<li><strong>Time domain:</strong> RMS, kurtosis, crest factor, clearance factor, impulse factor</li>
-<li><strong>Frequency domain:</strong> spectral entropy, band energy at BPFO / BPFI / BSF harmonics, high-frequency ratio</li>
-<li><strong>Temporal:</strong> rolling statistics and rate of change</li>
+<li><strong>From a raw waveform</strong> (<code>FeatureExtractor</code>, demonstrated below on a synthetic signal): time-domain shape factors — crest, clearance, impulse — and frequency-domain features from a Welch PSD: spectral entropy, band energy at BPFO / BPFI / BSF harmonics, and the high-frequency ratio.</li>
+<li><strong>From the per-file summary table</strong> (<code>enrich_processed</code>, run below on the real data): rolling statistics and rate of change over the RMS and kurtosis channels.</li>
 </ul>
+<p>The first set needs a raw waveform and the pipeline reads the summary table, so nothing in it reaches the model. Joining the two is the next piece of work; until then this notebook shows what those features do, not what they contribute.</p>
 <p>Not all of them move in the direction intuition suggests. Where they do not, the direction is stated next to the feature and pinned by a test.</p>
 <hr>
 <div id="cell-2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:26.264215Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:26.264128Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:26.912705Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:26.911990Z&quot;}}" data-execution_count="1">
@@ -573,8 +573,9 @@ Example columns:
 </section>
 <section id="summary" class="level2">
 <h2 class="anchored" data-anchor-id="summary">Summary</h2>
-<p>We have extracted: - <strong>11 time-domain</strong> statistical features per channel - <strong>9 frequency-domain</strong> features per channel (spectral entropy, defect freq energy, etc.) - <strong>Rolling statistics</strong> over windows of 10 and 50 samples - <strong>Rate-of-change</strong> features to detect sudden transitions</p>
-<p>The distributions clearly separate healthy vs degraded states — our ML model will learn this boundary.</p>
+<p><strong>On a synthetic waveform</strong>, <code>FeatureExtractor</code> produced 11 time-domain and 9 frequency-domain features, and the healthy/faulty comparison above shows which way each one moves.</p>
+<p><strong>On the real data</strong>, what was written to <code>data/processed/test{N}_features.csv</code> is rolling mean, standard deviation and maximum over windows of 10 and 50 files, plus first differences — on the RMS and kurtosis channels only. That table is what notebook 03 scores.</p>
+<p>So the frequency-domain features are demonstrated here and absent from the pipeline. The distributions above separate healthy from degraded on the features that are in it; whether the defect-frequency features would add to that is an ablation nobody has run.</p>
 <p><strong>Next:</strong> Anomaly detection models → Notebook 03</p>
 
 
