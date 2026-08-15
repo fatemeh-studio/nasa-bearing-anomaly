@@ -36,6 +36,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 from .config import REPORTS_DIR, TEST_CONFIG, repo_path
+from .features import ARMS, build_arm
 from .loading import load_processed
 
 # Try importing PyTorch (optional, graceful fallback)
@@ -510,10 +511,45 @@ def select_features(df: pd.DataFrame, bearing_prefix: str = None) -> list:
     return cols
 
 
-FEATURE_SOURCES = ("auto", "enriched", "basic")
+FEATURE_SOURCES = ("auto", "enriched", "basic", *ARMS)
 
 
-def resolve_feature_table(test_id: int, feature_source: str = "auto") -> tuple[pd.DataFrame, str]:
+def resolved_source_name(test_id: int, feature_source: str) -> str:
+    """
+    Name the source :func:`resolve_feature_table` would use, without loading it.
+
+    ``run_business`` needs the name to label its result, and calling the resolver
+    for it would assemble the whole arm a second time -- doubling the work and
+    printing the source line twice into notebook output, which renders on the site.
+
+    Parameters
+    ----------
+    test_id : int
+        1, 2 or 3.
+    feature_source : str
+        One of ``FEATURE_SOURCES``.
+
+    Returns
+    -------
+    str
+        The source that would be used.
+
+    Raises
+    ------
+    ValueError
+        If ``feature_source`` is not one of ``FEATURE_SOURCES``.
+    """
+    if feature_source not in FEATURE_SOURCES:
+        raise ValueError(f"feature_source must be one of {FEATURE_SOURCES}, got {feature_source!r}")
+    if feature_source in ARMS or feature_source == "basic":
+        return feature_source
+    features_path = TEST_CONFIG[test_id]["output_file"].parent / f"test{test_id}_features.csv"
+    return "enriched" if features_path.exists() else "basic"
+
+
+def resolve_feature_table(
+    test_id: int, feature_source: str = "auto"
+) -> tuple[pd.DataFrame, str, list[str] | None]:
     """
     Load the feature table for one test and report which table was used.
 
@@ -535,26 +571,38 @@ def resolve_feature_table(test_id: int, feature_source: str = "auto") -> tuple[p
     ----------
     test_id : int
         1, 2 or 3.
-    feature_source : {'auto', 'enriched', 'basic'}
-        ``auto`` prefers the enriched table and falls back to the committed one,
-        announcing which it took. ``enriched`` requires the enriched table and
-        raises if it is missing. ``basic`` always reads the committed table.
+    feature_source : str
+        One of ``FEATURE_SOURCES``. ``auto`` prefers the enriched table and falls
+        back to the committed one, announcing which it took. ``enriched`` requires
+        the enriched table and raises if it is missing. ``basic`` always reads the
+        committed table. The remaining values are ablation arms, assembled by
+        :func:`features.build_arm`; each names the columns it scores, because the
+        keyword matching below cannot separate them safely.
 
     Returns
     -------
-    tuple of (pandas.DataFrame, str)
-        The loaded table and the source actually used, ``'enriched'`` or
-        ``'basic'``.
+    tuple of (pandas.DataFrame, str, list of str or None)
+        The table, the source actually used, and the columns the caller must
+        score. The column list is ``None`` for the three table-backed sources,
+        which are selected by keyword instead -- including ``enriched``, the
+        published run, which keeps its original path so that the numbers it
+        produces can still be compared against the code that produced them.
 
     Raises
     ------
     ValueError
         If ``feature_source`` is not one of ``FEATURE_SOURCES``.
     FileNotFoundError
-        If ``feature_source='enriched'`` and the enriched table is absent.
+        If ``feature_source='enriched'`` and the enriched table is absent, or if
+        an arm is requested and the waveform table is absent.
     """
     if feature_source not in FEATURE_SOURCES:
         raise ValueError(f"feature_source must be one of {FEATURE_SOURCES}, got {feature_source!r}")
+
+    if feature_source in ARMS:
+        df, cols = build_arm(test_id, feature_source)
+        print(f"Feature source: {feature_source} (arm, {len(cols)} scored columns)")
+        return df, feature_source, cols
 
     config = TEST_CONFIG[test_id]
     features_path = config["output_file"].parent / f"test{test_id}_features.csv"
@@ -568,7 +616,7 @@ def resolve_feature_table(test_id: int, feature_source: str = "auto") -> tuple[p
     if feature_source != "basic" and features_path.exists():
         df = pd.read_csv(features_path, index_col="file_index")
         print(f"Feature source: enriched ({features_path.name}, {len(df.columns)} columns)")
-        return df, "enriched"
+        return df, "enriched", None
 
     df = load_processed(test_id)
     print(f"Feature source: basic ({config['output_file'].name}, {len(df.columns)} columns)")
@@ -582,7 +630,7 @@ def resolve_feature_table(test_id: int, feature_source: str = "auto") -> tuple[p
             f"'python -m nasa_bearing_anomaly.features --test {test_id}' first to "
             "match the published numbers."
         )
-    return df, "basic"
+    return df, "basic", None
 
 
 def run_pipeline(
@@ -608,13 +656,24 @@ def run_pipeline(
     """
     config = TEST_CONFIG[test_id]
 
-    df, source_used = resolve_feature_table(test_id, feature_source)
+    df, source_used, arm_cols = resolve_feature_table(test_id, feature_source)
 
-    # Select feature columns
     failed = config["failed_bearing"]
-    feature_cols = select_features(df, bearing_prefix=failed)
-    if len(feature_cols) < 2:
-        feature_cols = select_features(df)  # fallback: all bearings
+    if arm_cols is None:
+        feature_cols = select_features(df, bearing_prefix=failed)
+        if len(feature_cols) < 2:
+            feature_cols = select_features(df)  # fallback: all bearings
+    else:
+        # An arm names its columns, so narrowing is an unambiguous prefix match
+        # rather than a keyword search. No silent fallback to all bearings here:
+        # that would change which features an arm scores without saying so, and
+        # the arms exist to be compared against each other.
+        feature_cols = [c for c in arm_cols if c.startswith(failed)]
+        if len(feature_cols) < 2:
+            raise ValueError(
+                f"Arm {source_used!r} matched {len(feature_cols)} columns for "
+                f"{failed!r}. TEST_CONFIG['failed_bearing'] must be a column prefix."
+            )
 
     print(
         f"Failed bearing: {failed} | Features selected: {len(feature_cols)} (source: {source_used})"

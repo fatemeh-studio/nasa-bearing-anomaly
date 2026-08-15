@@ -27,7 +27,9 @@ from nasa_bearing_anomaly.business import (
     rms_columns,
     select_km,
     sustained_alarm,
+    writes_published_summary,
 )
+from nasa_bearing_anomaly.features import ARMS
 
 BEARINGS = ["Bearing1", "Bearing2", "Bearing3", "Bearing4"]
 
@@ -363,3 +365,23 @@ class TestSummaryRow:
         assert "heldout_false_alarms" in row
         assert "heldout_healthy_files" in row
         assert row["shutdown_files_dropped"] == 1
+
+
+# ── Published-artifact guard ───────────────────────────────────────────────
+
+
+class TestPublishedSummaryGuard:
+    """
+    business_summary.csv is what scripts/publish.sh reads and the README quotes.
+
+    Regression test: four single-arm runs overwrote the published three-row file
+    with one arm's single row, and nothing noticed until a byte comparison.
+    """
+
+    @pytest.mark.parametrize("arm", ARMS)
+    def test_an_arm_may_not_write_the_published_summary(self, arm):
+        assert not writes_published_summary(arm)
+
+    @pytest.mark.parametrize("source", ["auto", "enriched", "basic"])
+    def test_the_table_backed_sources_still_write_it(self, source):
+        assert writes_published_summary(source)

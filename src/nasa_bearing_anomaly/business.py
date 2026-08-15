@@ -75,6 +75,7 @@ import numpy as np
 import pandas as pd
 
 from .config import REPORTS_DIR, TEST_CONFIG
+from .features import ARMS
 
 # ─── Tunable Constants ─────────────────────────────────────────────────────
 # Fixed in advance and stated here rather than passed at the call site, so that
@@ -903,9 +904,9 @@ def run_business(
     LeadTimeResult
         The computed result.
     """
-    from .detection import resolve_feature_table, run_pipeline
+    from .detection import resolved_source_name, run_pipeline
 
-    _, source_used = resolve_feature_table(test_id, feature_source)
+    source_used = resolved_source_name(test_id, feature_source)
     scored = run_pipeline(test_id, method=method, feature_source=feature_source)
     return compute_lead_time(
         scored,
@@ -920,9 +921,77 @@ def run_business(
     )
 
 
+def writes_published_summary(feature_source: str) -> bool:
+    """
+    Whether a run on this feature source may write ``business_summary.csv``.
+
+    That file is the published artifact: ``scripts/publish.sh`` reads it and the
+    README and site quote it. An ablation arm is an exploratory feature set by
+    definition, so a run of one must not replace it. Measured 2026-08-15 while
+    this was being written: four single-arm runs left the published three-row
+    file holding one arm's single row, silently.
+
+    Parameters
+    ----------
+    feature_source : str
+        The source a run was given.
+
+    Returns
+    -------
+    bool
+        False for an ablation arm, True otherwise.
+    """
+    return feature_source not in ARMS
+
+
+def run_ablation(
+    arms: tuple[str, ...] = ("enriched", *ARMS),
+    tests: tuple[int, ...] = (1, 2, 3),
+    target_far: float = TARGET_FAR,
+) -> pd.DataFrame:
+    """
+    Score every feature set on every test and collect the results in one table.
+
+    The selection procedure is identical across arms: same ``contamination``,
+    same target false-alarm rate, same fixed (k, m) candidate list and
+    first-that-passes rule, same three-way healthy-window split, same random
+    seed. Arms differ only in which feature columns they score, which is what
+    makes a difference in lead time attributable to the features rather than to
+    the procedure.
+
+    Parameters
+    ----------
+    arms : tuple of str
+        Feature sources to compare. Defaults to the published run followed by
+        every entry in ``features.ARMS``.
+    tests : tuple of int
+        Which runs to score.
+    target_far : float
+        Per-file false-alarm rate the score threshold is calibrated to. Held
+        fixed across arms; varying it between them would make the comparison
+        meaningless.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per (arm, test), in the schema of ``LeadTimeResult.to_row``.
+    """
+    rows = []
+    for arm in arms:
+        for test_id in tests:
+            print(f"\n{'=' * 78}\nArm {arm} -- Test {test_id}\n{'=' * 78}")
+            rows.append(run_business(test_id, feature_source=arm, target_far=target_far).to_row())
+    return pd.DataFrame(rows)
+
+
 # ─── CLI ───────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Imported here rather than at module level: detection imports business's
+    # sibling modules, and run_business already defers its own import for the
+    # same reason.
+    from .detection import FEATURE_SOURCES
+
     parser = argparse.ArgumentParser(
         description="Failure lead time and false-alarm rate for the NASA IMS bearing tests"
     )
@@ -934,7 +1003,11 @@ if __name__ == "__main__":
         choices=["isolation_forest", "autoencoder"],
     )
     parser.add_argument(
-        "--feature-source", type=str, default="auto", choices=["auto", "enriched", "basic"]
+        "--feature-source",
+        type=str,
+        default="auto",
+        choices=list(FEATURE_SOURCES),
+        help="Feature table or ablation arm to score",
     )
     parser.add_argument(
         "--target-far",
@@ -942,9 +1015,38 @@ if __name__ == "__main__":
         default=TARGET_FAR,
         help="Per-file false-alarm rate the score threshold is calibrated to",
     )
+    parser.add_argument(
+        "--ablation",
+        action="store_true",
+        help="Score every arm on every test and write ablation_summary.csv. Writes a "
+        "separate file, so the published business_summary.csv is never overwritten "
+        "by a comparison run",
+    )
     args = parser.parse_args()
 
     tests = [1, 2, 3] if args.test == "all" else [int(args.test)]
+
+    if args.ablation:
+        table = run_ablation(tests=tuple(tests), target_far=args.target_far)
+        out = REPORTS_DIR / "ablation_summary.csv"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        table.to_csv(out, index=False)
+        print(f"\n{'=' * 78}\nABLATION: lead time in hours, held-out false alarms in brackets")
+        print("=" * 78)
+        by_key = {(row["feature_source"], row["test"]): row for _, row in table.iterrows()}
+
+        def cell(arm_name: str, test_id: int) -> str:
+            """Render one arm-and-test cell, or 'none' where no alarm ever fired."""
+            row = by_key[(arm_name, test_id)]
+            lead = row["lead_hours"]
+            shown = "  none" if lead is None else f"{lead:5.1f}"
+            return f"test {test_id}: {shown} h ({int(row['heldout_false_alarms'])})"
+
+        for arm in table["feature_source"].drop_duplicates():
+            print(f"  {arm:14s} " + " | ".join(cell(arm, t) for t in tests))
+        print(f"\nSaved: {out}")
+        raise SystemExit(0)
+
     results = []
     for t in tests:
         print(f"\n{'=' * 78}")
@@ -996,11 +1098,24 @@ if __name__ == "__main__":
     for label, usd in PUBLISHED_HOURLY_COST.items():
         print(f"  USD {usd:>9,.0f}/h  {label}")
 
-    out = REPORTS_DIR / "business_summary.csv"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame([r.to_row() for r in results]).to_csv(out, index=False)
-    print(f"\nSaved: {out}")
+    # business_summary.csv is the published artifact: scripts/publish.sh reads it,
+    # and the README and site quote it. An ablation arm is an exploratory feature
+    # set by definition, so a run of one must not be able to replace it -- the same
+    # reason loading.py skips its save under --max_files, and the same failure that
+    # a single --feature-source envelope run on one test caused while this was
+    # being written, leaving the published three-row file holding one arm's row.
+    if not writes_published_summary(args.feature_source):
+        print(
+            f"\nSkipped save: {args.feature_source!r} is an ablation arm, and "
+            "business_summary.csv holds the published run.\n"
+            "Use --ablation to write every arm to ablation_summary.csv."
+        )
+    else:
+        out = REPORTS_DIR / "business_summary.csv"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([r.to_row() for r in results]).to_csv(out, index=False)
+        print(f"\nSaved: {out}")
 
-    cost_out = REPORTS_DIR / "business_cost_sensitivity.csv"
-    pd.concat(cost_rows, ignore_index=True).to_csv(cost_out, index=False)
-    print(f"Saved: {cost_out}")
+        cost_out = REPORTS_DIR / "business_cost_sensitivity.csv"
+        pd.concat(cost_rows, ignore_index=True).to_csv(cost_out, index=False)
+        print(f"Saved: {cost_out}")
