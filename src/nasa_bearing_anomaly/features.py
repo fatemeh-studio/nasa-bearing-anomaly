@@ -35,6 +35,7 @@ Usage:
 """
 
 import argparse
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -553,16 +554,21 @@ def add_rolling_features(
     if windows is None:
         windows = [10, 50]
 
-    df = df.copy()
+    new = {}
     for col in columns:
         if col not in df.columns:
             continue
         for w in windows:
-            df[f"{col}_roll_mean_{w}"] = df[col].rolling(window=w, min_periods=1).mean()
-            df[f"{col}_roll_std_{w}"] = df[col].rolling(window=w, min_periods=1).std().fillna(0)
-            df[f"{col}_roll_max_{w}"] = df[col].rolling(window=w, min_periods=1).max()
+            roll = df[col].rolling(window=w, min_periods=1)
+            new[f"{col}_roll_mean_{w}"] = roll.mean()
+            new[f"{col}_roll_std_{w}"] = roll.std().fillna(0)
+            new[f"{col}_roll_max_{w}"] = roll.max()
 
-    return df
+    # Concatenated once rather than assigned one column at a time. An ablation arm
+    # adds up to 64 columns here, and repeated insertion both fragments the frame
+    # and makes pandas emit a PerformanceWarning -- which is captured into notebook
+    # output and rendered on the site.
+    return pd.concat([df, pd.DataFrame(new, index=df.index)], axis=1)
 
 
 def add_change_rate_features(df: pd.DataFrame, columns: list) -> pd.DataFrame:
@@ -572,12 +578,13 @@ def add_change_rate_features(df: pd.DataFrame, columns: list) -> pd.DataFrame:
     Sudden jumps in RMS or kurtosis are early warning signals, and a difference
     column exposes them to a detector that otherwise only sees levels.
     """
-    df = df.copy()
+    new = {}
     for col in columns:
         if col in df.columns:
-            df[f"{col}_diff"] = df[col].diff().fillna(0)
-            df[f"{col}_diff_abs"] = df[f"{col}_diff"].abs()
-    return df
+            diff = df[col].diff().fillna(0)
+            new[f"{col}_diff"] = diff
+            new[f"{col}_diff_abs"] = diff.abs()
+    return pd.concat([df, pd.DataFrame(new, index=df.index)], axis=1)
 
 
 def enrich_processed(test_id: int) -> pd.DataFrame:
@@ -618,6 +625,188 @@ def enrich_processed(test_id: int) -> pd.DataFrame:
         f"Saved enriched features: {repo_path(out_path)}  ({len(df)} rows, {len(df.columns)} columns)"
     )
     return df
+
+
+# ─── Ablation Arms ─────────────────────────────────────────────────────────
+
+# Feature sets compared in the ablation. 'enriched' -- the published run -- is
+# deliberately NOT built here. It keeps its original path through
+# detection.resolve_feature_table, so the regression guard compares against the
+# code that produced the published numbers rather than a reimplementation of it.
+ARMS = ("log", "psd", "psd_enriched", "envelope")
+
+# Strictly-positive scale quantities, which belong on a log scale: they are
+# multiplicative and span orders of magnitude, and the field's own unit for them,
+# the decibel, is already a logarithm. It matters to the model rather than only to
+# the eye -- an isolation tree draws its split points uniformly across a feature's
+# linear range, so a feature spanning three decades gets nearly all of its splits
+# inside the top decade.
+#
+# Named rather than detected from the values. A rule like "log whatever happens to
+# be positive" would treat one feature differently between tests and give the three
+# runs different schemas. Signed quantities (_kurt, _mean, _skew) and bounded ratios
+# (spectral_entropy, high_freq_ratio, the shape factors) are excluded by the rule,
+# not by how they perform.
+LOG_SUFFIXES = ("_rms", "_std", "_max", "_mean_abs", "_energy", "_psd_mean")
+
+# The Welch-PSD block. Listed explicitly rather than matched loosely, because
+# '_bpfo_energy' is also the ending of '_env_bpfo_energy'.
+PSD_SUFFIXES = (
+    "_spectral_entropy",
+    "_high_freq_ratio",
+    "_dominant_freq_hz",
+    "_psd_mean",
+    "_psd_std",
+    "_bpfo_energy",
+    "_bpfi_energy",
+    "_bsf_energy",
+)
+
+TIME_SUFFIXES = ("_rms", "_kurt", "_std", "_max")
+ROLL_SUFFIXES = ("_rms", "_kurt")
+
+
+def spectral_path(test_id: int) -> Path:
+    """Path to the committed waveform-feature table for one test."""
+    return TEST_CONFIG[test_id]["output_file"].parent / f"test{test_id}_spectral.csv"
+
+
+def add_log_columns(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """
+    Add a base-10 log companion for every strictly-positive scale column.
+
+    A companion rather than a replacement, and this is load-bearing:
+    ``business.find_shutdown_tail`` and ``business.check_healthy_region`` both
+    compare RMS against a fraction of its own baseline, and a ratio of logarithms
+    is not the logarithm of a ratio. Overwriting ``_rms`` in place would make a
+    stopped rig read as twice baseline instead of a sixteenth of it, and the
+    post-shutdown tail would silently stop being found.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Feature frame. Not modified in place.
+
+    Returns
+    -------
+    tuple of (pandas.DataFrame, list of str)
+        A copy carrying the new ``{column}_log10`` columns, and their names.
+    """
+    out = df.copy()
+    added = []
+    for col in df.columns:
+        if col.endswith(LOG_SUFFIXES):
+            name = f"{col}_log10"
+            # Floored rather than a bare log10: a channel reading exactly zero
+            # would give -inf, and the detector fills missing values with 0, which
+            # on this scale reads as 1.0 -- orders of magnitude above any healthy
+            # value. Measured across all three tests, nothing falls below 1e-12,
+            # so the floor does not bind on this data.
+            out[name] = np.log10(np.maximum(df[col].to_numpy(dtype=float), 1e-12))
+            added.append(name)
+    return out, added
+
+
+def _scored_name(column: str) -> str:
+    """Log companion of a column where it has one, otherwise the column itself."""
+    return f"{column}_log10" if column.endswith(LOG_SUFFIXES) else column
+
+
+def build_arm(test_id: int, arm: str) -> tuple[pd.DataFrame, list[str]]:
+    """
+    Assemble one ablation arm: the feature frame, and the columns it scores.
+
+    Scored columns are named explicitly rather than matched by keyword.
+    ``detection.select_features`` matches ``_std`` and ``_kurt`` as substrings, so
+    on a joined frame it would pull ``psd_std`` and ``env_kurtosis`` into arms that
+    exist to exclude them -- and it degrades to a smaller set rather than raising,
+    so nothing would go red.
+
+    The arms:
+
+    ``log``
+        The published feature set, scored on a log scale. Comparing it against the
+        published run isolates what the change of scale alone is worth, so a later
+        gain cannot be credited to the physics when it came from the units.
+    ``psd``
+        ``log`` plus the Welch-PSD block: defect-band energy at BPFO, BPFI and BSF,
+        spectral entropy, high-frequency ratio and the PSD moments.
+    ``psd_enriched``
+        ``psd`` with the same rolling and difference treatment the time-domain
+        columns already get, so a null result cannot be blamed on the spectral
+        features having been denied the temporal context the others have.
+    ``envelope``
+        ``log`` plus the same three defect bands measured on the envelope spectrum,
+        plus the envelope's kurtosis. Parallel to ``psd`` by construction, so the
+        two differ only in how the same defect frequencies are estimated.
+
+    Parameters
+    ----------
+    test_id : int
+        1, 2 or 3.
+    arm : {'log', 'psd', 'psd_enriched', 'envelope'}
+        Which feature set to assemble.
+
+    Returns
+    -------
+    tuple of (pandas.DataFrame, list of str)
+        The joined frame, which keeps ``timestamp`` and the linear columns that
+        ``business.py`` reads, and every column this arm scores across all
+        bearings. The caller narrows to one bearing by prefix.
+
+    Raises
+    ------
+    ValueError
+        If ``arm`` is not one of ``ARMS``.
+    FileNotFoundError
+        If a spectral arm is requested and the waveform table is absent.
+    """
+    if arm not in ARMS:
+        raise ValueError(f"arm must be one of {ARMS}, got {arm!r}")
+
+    summary = load_processed(test_id)
+    meta = [c for c in ("timestamp", "filename") if c in summary.columns]
+    base = [c for c in summary.columns if c.endswith(TIME_SUFFIXES)]
+
+    frame, _ = add_log_columns(summary[meta + base])
+    scored = [_scored_name(c) for c in base]
+
+    # Rolling and difference columns over RMS and kurtosis only, matching
+    # enrich_processed, so this block is the published one up to the change of
+    # scale. Derived AFTER the log, so a difference of logs is a growth ratio --
+    # the right rate of change for a multiplicative quantity.
+    roll_src = [_scored_name(c) for c in base if c.endswith(ROLL_SUFFIXES)]
+    before = set(frame.columns)
+    frame = add_rolling_features(frame, roll_src, windows=[10, 50])
+    frame = add_change_rate_features(frame, roll_src)
+    scored += [c for c in frame.columns if c not in before]
+
+    if arm == "log":
+        return frame, scored
+
+    path = spectral_path(test_id)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Waveform feature table not found: {path}\n"
+            f"Run: python -m nasa_bearing_anomaly.features --test {test_id} --spectral"
+        )
+    spectral = pd.read_csv(path, index_col="file_index")
+
+    if arm == "envelope":
+        block_base = [c for c in spectral.columns if "_env_" in c]
+    else:
+        block_base = [c for c in spectral.columns if c.endswith(PSD_SUFFIXES) and "_env_" not in c]
+
+    block, _ = add_log_columns(spectral[block_base])
+    block_scored = [_scored_name(c) for c in block_base]
+
+    if arm == "psd_enriched":
+        before = set(block.columns)
+        block = add_rolling_features(block, block_scored, windows=[10, 50])
+        block = add_change_rate_features(block, block_scored)
+        block_scored += [c for c in block.columns if c not in before]
+
+    return frame.join(block), scored + block_scored
 
 
 # ─── CLI ───────────────────────────────────────────────────────────────────

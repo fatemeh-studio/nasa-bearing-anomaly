@@ -8,13 +8,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from nasa_bearing_anomaly.business import rms_columns
 from nasa_bearing_anomaly.features import (
+    ARMS,
     SUMMARY_DUPLICATE_KEYS,
     FeatureExtractor,
     add_change_rate_features,
     add_rolling_features,
+    build_arm,
 )
-from nasa_bearing_anomaly.loading import _kurtosis, _skewness
+from nasa_bearing_anomaly.loading import _kurtosis, _skewness, load_processed
 
 FS = 20000  # Hz
 
@@ -318,6 +321,76 @@ class TestEnvelopeFeatures:
         assert "env_ftf_energy" not in keys
         for name in extractor.band_energy_freqs:
             assert f"env_{name.replace('_Hz', '').lower()}_energy" in keys
+
+
+# ── Ablation Arms ──────────────────────────────────────────────────────────
+# These read the committed tables rather than fixtures, deliberately: they check
+# the arms a reviewer gets from a clean clone. Test 2 is used throughout because
+# it is the smallest of the three.
+
+
+class TestArms:
+    def test_unknown_arm_raises(self):
+        with pytest.raises(ValueError, match="arm must be one of"):
+            build_arm(2, "physics")
+
+    def test_log_arm_has_the_published_shape(self):
+        """
+        Arm 'log' must be the published feature set and nothing more, so that
+        comparing the two isolates the change of scale rather than a change of
+        content. Four base statistics, plus rolling and differences over the RMS
+        and kurtosis channels only.
+        """
+        _, scored = build_arm(2, "log")
+        bearing = [c for c in scored if c.startswith("Bearing1")]
+        assert len(bearing) == 4 + 2 * (3 * 2) + 2 * 2
+
+    def test_linear_rms_survives_and_is_not_scored(self):
+        """
+        business.find_shutdown_tail and check_healthy_region compare RMS against a
+        fraction of its own baseline, and a ratio of logarithms is not the
+        logarithm of a ratio -- a stopped rig would read as twice baseline rather
+        than a sixteenth. So the linear column stays in the frame and out of the
+        model, and business.py must still find exactly the columns it expects.
+        """
+        frame, scored = build_arm(2, "log")
+        assert "Bearing1_ch1_rms" in frame.columns
+        assert "Bearing1_ch1_rms" not in scored
+        assert "Bearing1_ch1_rms_log10" in scored
+        assert rms_columns(frame) == rms_columns(load_processed(2))
+
+    def test_signed_features_are_not_logged(self):
+        """Excess kurtosis is signed, so the positivity rule has to skip it."""
+        _, scored = build_arm(2, "log")
+        assert "Bearing1_ch1_kurt" in scored
+        assert not any(c.endswith("_kurt_log10") for c in scored)
+
+    @pytest.mark.parametrize("arm", ["psd", "psd_enriched", "envelope"])
+    def test_spectral_arms_contain_the_log_arm(self, arm):
+        """
+        Each spectral arm is the log arm plus a block. Without that, a difference
+        in lead time could come from what an arm dropped rather than what it added.
+        """
+        _, base = build_arm(2, "log")
+        _, scored = build_arm(2, arm)
+        assert set(base) <= set(scored)
+
+    def test_psd_and_envelope_blocks_are_disjoint(self):
+        """
+        `_bpfo_energy` is also the ending of `_env_bpfo_energy`, so a loose suffix
+        match would put the envelope block inside the PSD arm and leave the two
+        arms measuring the same thing.
+        """
+        _, base = build_arm(2, "log")
+        _, psd = build_arm(2, "psd")
+        _, env = build_arm(2, "envelope")
+        assert not (set(psd) - set(base)) & (set(env) - set(base))
+        assert not any("_env_" in c for c in psd)
+
+    def test_no_arm_scores_a_non_finite_value(self):
+        for arm in ARMS:
+            frame, scored = build_arm(2, arm)
+            assert np.isfinite(frame[scored].to_numpy(dtype=float)).all(), arm
 
 
 # ── Rolling & Change-Rate Features ────────────────────────────────────────
