@@ -192,6 +192,65 @@ Test 1 has eight channels and so 48 statistic columns; Tests 2 and 3 have four
 channels and 24. There is no `_ch2` column for Tests 2 and 3, because there was no
 second accelerometer.
 
+## `data/processed/` — the committed waveform-feature tables
+
+Regenerate with `python -m nasa_bearing_anomaly.features --test all --spectral`,
+which needs `raw/` and takes about eight minutes. The summary tables above collapse
+each acquisition to six statistics and discard the waveform, so nothing derived from
+a spectrum can be recovered from them. These tables are the second pass that keeps
+what a spectrum shows.
+
+| File | Rows | Columns | Size |
+| ---- | ---- | ------- | ---- |
+| `test1_spectral.csv` | 2,156 | 144 | 2.9 MB |
+| `test2_spectral.csv` |   984 |  72 | 676 kB |
+| `test3_spectral.csv` | 6,324 |  72 | 4.3 MB |
+
+Indexed by `file_index`, one row per acquisition, so it joins `test{N}_raw.csv`
+row for row. Eighteen features per channel, named `{Bearing}_ch{N}_{feature}`:
+
+| Column | Meaning |
+| ------ | ------- |
+| `_crest_factor` | peak / RMS, dimensionless. Impulsiveness — see the direction warning below |
+| `_shape_factor` | RMS / mean absolute value |
+| `_impulse_factor` | peak / mean absolute value |
+| `_clearance_factor` | peak / (mean square-root amplitude)², dimensionless |
+| `_energy` | sum of squares over the 20,480 samples, g² |
+| `_mean_abs` | mean absolute amplitude, in g |
+| `_spectral_entropy` | Shannon entropy of the normalised Welch PSD, in [0, 1]. **Higher when healthy** |
+| `_high_freq_ratio` | share of PSD power above 5 kHz, in [0, 1]. **Higher when healthy** |
+| `_dominant_freq_hz` | frequency of the largest PSD bin, Hz |
+| `_psd_mean`, `_psd_std` | mean and standard deviation of the PSD, g²/Hz |
+| `_bpfo_energy`, `_bpfi_energy`, `_bsf_energy` | PSD power summed over three harmonic bands at that defect frequency, g²/Hz |
+| `_env_kurtosis` | excess kurtosis of the envelope, dimensionless |
+| `_env_bpfo_energy`, `_env_bpfi_energy`, `_env_bsf_energy` | the same three bands measured on the **envelope** spectrum |
+
+**There is no `_ftf_energy` column, and its absence is derived rather than chosen.**
+The Welch estimate uses a 0.1 s window, giving 10 Hz bins, and a band is required to
+span at least three bins so that it is an integral rather than a point sample. FTF is
+14.775 Hz, so any such band around it reaches 0 Hz, where the DC bin carries the
+signal mean rather than defect energy. A longer window would let it back in
+automatically. No test in this dataset has a cage failure, which is what FTF
+diagnoses. Measured 2026-08-15: with the previous fixed 5 Hz half-width every band at
+every harmonic resolved to exactly **one** bin, and `ftf_energy` separated healthy
+from faulty Test 3 data by 0.02 pooled standard deviations.
+
+**The envelope columns measure the same defect frequencies a different way, and it
+is the physically correct way.** A localised defect does not radiate at its defect
+frequency; each impact rings a structural resonance in the kHz range, so the defect
+rate appears as the *modulation* of that resonance. The envelope columns band-pass
+to 2 kHz–Nyquist, take the analytic-signal magnitude, and measure the defect bands on
+the spectrum of that envelope. The band is fixed in advance rather than fitted.
+
+**These columns are strongly log-normal.** `_env_bpfo_energy` spans roughly three
+orders of magnitude between healthy and failed on Test 3, so a linear reading is
+dominated by its own tail. Anything comparing them should work in `log10`.
+
+Deliberately **absent**, because `test{N}_raw.csv` already carries them: RMS, standard
+deviation, absolute maximum, excess kurtosis and skewness. Storing them twice would
+put two columns in a joined frame for one measurement. Values are written to six
+significant figures, which is well beyond the precision of the inputs.
+
 ## Set 3 discrepancy (the `4th_test` folder and the 4,448 vs 6,324 file count)
 
 This dataset has a well-documented quirk in its third test that is easy to get
@@ -296,6 +355,15 @@ inspected:
       -> features.py                        rolling windows (10/50), first differences
     data/processed/test{N}_features.csv     gitignored; regenerates in seconds
       -> detection.py                       StandardScaler -> PCA -> Isolation Forest
+
+    data/raw/test{N}/                       the same archive, walked a second time
+      -> features.py --spectral             Welch PSD and envelope, per channel
+    data/processed/test{N}_spectral.csv     COMMITTED — joins _raw.csv on file_index
+
+The second pass is separate rather than folded into the first because the summary
+tables are published output: regenerating them to add columns would put the three
+committed numbers at risk for no gain, and keeping them byte-identical is what makes
+a time-domain-only run comparable against one with spectral features added.
     results/reports/test{N}_{method}_results.csv   gitignored, 1.6–10.2 MB each
     results/reports/business_summary.csv    COMMITTED — the published numbers
     results/figures/, figures/headline/     COMMITTED — the published figures

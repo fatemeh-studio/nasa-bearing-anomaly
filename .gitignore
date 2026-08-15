@@ -33,14 +33,24 @@ data/docs/
 # The three per-file summary tables ARE committed, deliberately: the raw input is
 # a 6.2 GB download, so without them nobody can run notebooks 02-04 from a clone.
 #
+# The three waveform-feature tables (test{N}_spectral.csv, 8.0 MB together) are
+# committed for the same reason and a stronger one: they are the only way to
+# reproduce a frequency- or envelope-domain result without the 6.2 GB download,
+# and a published number that depends on an untracked file is the defect the
+# feature-source machinery exists to prevent. They cost one pass over the raw
+# archive to rebuild, not seconds.
+#
 # The negation names them individually rather than *.csv. The enriched feature
-# tables (test{N}_features.csv) are derived from these three in seconds and are
-# several times larger, so committing them would cost tens of megabytes and buy
-# nothing. Anything else dropped here — pickles, parquet, checkpoints — is scratch.
+# tables (test{N}_features.csv) are derived from these in seconds and are several
+# times larger, so committing them would cost tens of megabytes and buy nothing.
+# Anything else dropped here — pickles, parquet, checkpoints — is scratch.
 data/processed/*
 !data/processed/test1_raw.csv
 !data/processed/test2_raw.csv
 !data/processed/test3_raw.csv
+!data/processed/test1_spectral.csv
+!data/processed/test2_spectral.csv
+!data/processed/test3_spectral.csv
 
 # -----------------------------------------------------------------------------
 #  Results — mostly committed on purpose

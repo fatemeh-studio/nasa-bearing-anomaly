@@ -35,9 +35,12 @@ repos:
         # file, so raising it to admit the known ones would silently permit that
         # next file too. Two exemptions, both narrow:
         #
-        # 1. The two committed data tables that genuinely exceed it. test2_raw.csv
-        #    is 452 kB and needs no exemption. Why they are committed at all is in
-        #    data/README.md.
+        # 1. The four committed data tables that genuinely exceed it: test1 and
+        #    test3, both _raw and _spectral, at 1.8-4.3 MB. The two test2 tables
+        #    are 452 and 676 kB and need no exemption -- they are left to the
+        #    guard deliberately, so the exemption stays a list of measured files
+        #    rather than a blanket rule for the directory. Why any of them are
+        #    committed at all is in data/README.md.
         #
         # 2. Notebooks -- because this hook measures the working copy
         #    (os.stat().st_size) and for .ipynb the working copy is deliberately
@@ -48,7 +51,7 @@ repos:
         #    and it worsens every time a notebook is run. The guard is redundant
         #    here regardless: the filter already bounds what git can store.
         args: [--maxkb=1000]
-        exclude: ^(data/processed/test[13]_raw\.csv|notebooks/.*\.ipynb)$
+        exclude: ^(data/processed/test[13]_(raw|spectral)\.csv|notebooks/.*\.ipynb)$
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: trailing-whitespace
