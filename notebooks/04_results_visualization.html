@@ -228,7 +228,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Generates the per-test summary dashboards and one comparison figure across all three runs, then writes a raw detection summary.</p>
 <p>The lead-time and downtime-cost analysis is deliberately <strong>not</strong> here. It needs a sustained-alert rule and a false-alarm rate calibrated on a healthy baseline, which <code>business.py</code> adds. The intervals this notebook prints are raw first-alert numbers and are labelled as such.</p>
 <hr>
-<div id="cell-2" class="cell">
+<div id="cell-2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:52.298935Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:52.298843Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:53.873610Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:53.872989Z&quot;}}" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -260,247 +260,383 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Ready"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Ready</code></pre>
+</div>
 </div>
 <section id="score-all-three-runs" class="level2">
 <h2 class="anchored" data-anchor-id="score-all-three-runs">1. Score All Three Runs</h2>
 <p>Detection is re-run here rather than read back from <code>results/reports/*_results.csv</code>. Those scored frames are gitignored, so on a fresh clone they are absent — and a cell that reads them when present and recomputes when not would produce different numbers depending on what happened to be on disk.</p>
 <p>The feature table is pinned to the <strong>enriched</strong> one for the same reason. It is written by notebook 02, so run these in order; pinning it means a missing table raises instead of silently falling back to the narrower committed table, which selects 4 feature columns instead of 20 and fits a different model.</p>
-<div id="cell-4" class="cell">
+<div id="cell-4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:53.888198Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:53.887998Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:55.524378Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:55.523649Z&quot;}}" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>FEATURE_SOURCE <span class="op">=</span> <span class="st">"enriched"</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    results[test_id] <span class="op">=</span> run_pipeline(test_id, feature_source<span class="op">=</span>FEATURE_SOURCE)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Computed here rather than after the figures, because the comparison figure below</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># marks the alarm and must mark the sustained one. An earlier version drew the raw</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># first flagged file, which is file 0 in all three runs -- so the README's hero image</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># annotated "first alert: file 0 of 2156" while the text explained why that number</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># means nothing.</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>lead_results <span class="op">=</span> [</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    compute_lead_time(df, test_id, feature_source<span class="op">=</span>FEATURE_SOURCE) <span class="cf">for</span> test_id, df <span class="kw">in</span> results.items()</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>lead_by_test <span class="op">=</span> {r.test_id: r <span class="cf">for</span> r <span class="kw">in</span> lead_results}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>FEATURE_SOURCE <span class="op">=</span> <span class="st">"enriched"</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    results[test_id] <span class="op">=</span> run_pipeline(test_id, feature_source<span class="op">=</span>FEATURE_SOURCE)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Computed here rather than after the figures, because the comparison figure below</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># marks the alarm and must mark the sustained one. An earlier version drew the raw</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># first flagged file, which is file 0 in all three runs -- so the README's hero image</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># annotated "first alert: file 0 of 2156" while the text explained why that number</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># means nothing.</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>lead_results <span class="op">=</span> [</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    compute_lead_time(df, test_id, feature_source<span class="op">=</span>FEATURE_SOURCE) <span class="cf">for</span> test_id, df <span class="kw">in</span> results.items()</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>lead_by_test <span class="op">=</span> {r.test_id: r <span class="cf">for</span> r <span class="kw">in</span> lead_results}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Feature source: enriched (test1_features.csv, 178 columns)
+Failed bearing: Bearing3 | Features selected: 40 (source: enriched)
+  IsolationForest fitted on 1293 healthy samples (40 features)
+  Anomalies detected: 458/2156 (21.2%)
+  First flagged file: 0 (diagnostic; not a lead time)
+  Model saved to results/reports/test1_model/isolation_forest.pkl
+Results saved: results/reports/test1_isolation_forest_results.csv
+Feature source: enriched (test2_features.csv, 90 columns)
+Failed bearing: Bearing1 | Features selected: 20 (source: enriched)
+  IsolationForest fitted on 590 healthy samples (20 features)
+  Anomalies detected: 417/984 (42.4%)
+  First flagged file: 0 (diagnostic; not a lead time)
+  Model saved to results/reports/test2_model/isolation_forest.pkl
+Results saved: results/reports/test2_isolation_forest_results.csv
+Feature source: enriched (test3_features.csv, 90 columns)
+Failed bearing: Bearing3 | Features selected: 20 (source: enriched)
+  IsolationForest fitted on 3794 healthy samples (20 features)
+  Anomalies detected: 1287/6324 (20.4%)
+  First flagged file: 0 (diagnostic; not a lead time)
+  Model saved to results/reports/test3_model/isolation_forest.pkl
+Results saved: results/reports/test3_isolation_forest_results.csv</code></pre>
+</div>
 </div>
 </section>
 <section id="summary-dashboard-per-test" class="level2">
 <h2 class="anchored" data-anchor-id="summary-dashboard-per-test">2. Summary Dashboard (Per Test)</h2>
 <p>The main portfolio image — one per test.</p>
-<div id="cell-6" class="cell">
+<div id="cell-6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:55.525580Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:55.525474Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:57.507860Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:57.507184Z&quot;}}" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id, df <span class="kw">in</span> results.items():</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Generating dashboard for Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">..."</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    plotter <span class="op">=</span> BearingPlotter(test_id<span class="op">=</span>test_id, save_figures<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    feature_cols <span class="op">=</span> select_features(df, bearing_prefix<span class="op">=</span>config[<span class="st">"failed_bearing"</span>])</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># The dashboard is handed the sustained alarm rather than deriving one. It used</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to draw df.index[is_anomaly].min(), which is file 0 on every run, so the</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># centrepiece figure annotated the one number this project's prose calls</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># meaningless. Passing it in means the figure cannot disagree with business.py.</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    lead <span class="op">=</span> lead_by_test[test_id]</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plotter.plot_summary_dashboard(</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        df,</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        feature_cols<span class="op">=</span>feature_cols,</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        alarm_file<span class="op">=</span>lead.alarm_file,</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        lead_hours<span class="op">=</span>lead.lead_hours,</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        k<span class="op">=</span>lead.k,</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        m<span class="op">=</span>lead.m,</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id, df <span class="kw">in</span> results.items():</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Generating dashboard for Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">..."</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    plotter <span class="op">=</span> BearingPlotter(test_id<span class="op">=</span>test_id, save_figures<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    feature_cols <span class="op">=</span> select_features(df, bearing_prefix<span class="op">=</span>config[<span class="st">"failed_bearing"</span>])</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># The dashboard is handed the sustained alarm rather than deriving one. It used</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># to draw df.index[is_anomaly].min(), which is file 0 on every run, so the</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># centrepiece figure annotated the one number this project's prose calls</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># meaningless. Passing it in means the figure cannot disagree with business.py.</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    lead <span class="op">=</span> lead_by_test[test_id]</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plotter.plot_summary_dashboard(</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        df,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        feature_cols<span class="op">=</span>feature_cols,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        alarm_file<span class="op">=</span>lead.alarm_file,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        lead_hours<span class="op">=</span>lead.lead_hours,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        k<span class="op">=</span>lead.k,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        m<span class="op">=</span>lead.m,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Generating dashboard for Test 1...
+  Saved: results/figures/test1/00_summary_dashboard.png</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04_results_visualization_files/figure-html/cell-4-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Generating dashboard for Test 2...
+  Saved: results/figures/test2/00_summary_dashboard.png</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04_results_visualization_files/figure-html/cell-4-output-4.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Generating dashboard for Test 3...
+  Saved: results/figures/test3/00_summary_dashboard.png</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04_results_visualization_files/figure-html/cell-4-output-6.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 <section id="all-tests-comparison-figure" class="level2">
 <h2 class="anchored" data-anchor-id="all-tests-comparison-figure">3. All-Tests Comparison Figure</h2>
 <p>One clean figure showing all 3 tests side by side — for README header.</p>
-<div id="cell-8" class="cell">
+<div id="cell-8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:57.508927Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:57.508826Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:58.450636Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:58.450040Z&quot;}}" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">3</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">18</span>, <span class="dv">13</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>fig.patch.set_facecolor(<span class="st">"#0d1117"</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>fig.suptitle(</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"NASA IMS Bearing Dataset — Predictive Maintenance via Anomaly Detection</span><span class="ch">\n</span><span class="st">"</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"All Three Test Runs | Isolation Forest | Sustained-alert rule, 1</span><span class="sc">% c</span><span class="st">alibrated FAR"</span>,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    fontsize<span class="op">=</span><span class="dv">13</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    color<span class="op">=</span><span class="st">"#e6edf3"</span>,</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    y<span class="op">=</span><span class="fl">0.99</span>,</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>bearing_colors <span class="op">=</span> [<span class="st">"#58a6ff"</span>, <span class="st">"#3fb950"</span>, <span class="st">"#d29922"</span>, <span class="st">"#bc8cff"</span>]</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> row, (test_id, df) <span class="kw">in</span> <span class="bu">enumerate</span>(results.items()):</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    failed <span class="op">=</span> config[<span class="st">"failed_bearing"</span>]</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    rms_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss">_ch1_rms"</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    lead <span class="op">=</span> lead_by_test[test_id]</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    ax_rms <span class="op">=</span> axes[row, <span class="dv">0</span>]</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    ax_score <span class="op">=</span> axes[row, <span class="dv">1</span>]</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> [ax_rms, ax_score]:</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        ax.set_facecolor(<span class="st">"#161b22"</span>)</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ── Left: All bearings RMS ──</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, bearing <span class="kw">in</span> <span class="bu">enumerate</span>([<span class="st">"Bearing1"</span>, <span class="st">"Bearing2"</span>, <span class="st">"Bearing3"</span>, <span class="st">"Bearing4"</span>]):</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>bearing<span class="sc">}</span><span class="ss">_ch1_rms"</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> col <span class="kw">in</span> df.columns:</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>            lw <span class="op">=</span> <span class="fl">1.5</span> <span class="cf">if</span> bearing <span class="op">==</span> failed <span class="cf">else</span> <span class="fl">0.6</span></span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>            alpha <span class="op">=</span> <span class="fl">1.0</span> <span class="cf">if</span> bearing <span class="op">==</span> failed <span class="cf">else</span> <span class="fl">0.5</span></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>            lbl <span class="op">=</span> bearing <span class="op">+</span> (<span class="st">" (failed)"</span> <span class="cf">if</span> bearing <span class="op">==</span> failed <span class="cf">else</span> <span class="st">""</span>)</span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>            ax_rms.plot(</span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>                df.index, df[col], color<span class="op">=</span>bearing_colors[i], linewidth<span class="op">=</span>lw, alpha<span class="op">=</span>alpha, label<span class="op">=</span>lbl</span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    ax_rms.set_title(</span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">: RMS — </span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>,</span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        fontsize<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#e6edf3"</span>,</span>
-<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
-<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    ax_rms.set_ylabel(<span class="st">"RMS (g)"</span>, color<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
-<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    ax_rms.legend(fontsize<span class="op">=</span><span class="dv">7</span>, loc<span class="op">=</span><span class="st">"upper left"</span>)</span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    ax_rms.grid(<span class="va">True</span>, color<span class="op">=</span><span class="st">"#30363d"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    ax_rms.tick_params(colors<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ── Right: Detection result, marked at the SUSTAINED alarm ──</span></span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rms_col <span class="kw">in</span> df.columns:</span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>        ax_score.plot(df.index, df[rms_col], color<span class="op">=</span><span class="st">"#58a6ff"</span>, linewidth<span class="op">=</span><span class="fl">0.8</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">"RMS"</span>)</span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"is_anomaly"</span> <span class="kw">in</span> df.columns:</span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>            anom_mask <span class="op">=</span> df[<span class="st">"is_anomaly"</span>]</span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>            ax_score.scatter(</span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>                df.index[anom_mask],</span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>                df[rms_col][anom_mask],</span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#f85149"</span>,</span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>                s<span class="op">=</span><span class="dv">6</span>,</span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>                zorder<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>                alpha<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="st">"Flagged file (raw)"</span>,</span>
-<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>        <span class="co"># The post-shutdown tail is measured per run, not assumed to be one file.</span></span>
-<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lead.n_shutdown_dropped:</span>
-<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>            ax_score.axvspan(</span>
-<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a>                df.index[<span class="bu">len</span>(df) <span class="op">-</span> lead.n_shutdown_dropped],</span>
-<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a>                df.index[<span class="op">-</span><span class="dv">1</span>],</span>
-<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#6e7681"</span>,</span>
-<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a>                alpha<span class="op">=</span><span class="fl">0.35</span>,</span>
-<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="ss">f"Post-shutdown (</span><span class="sc">{</span>lead<span class="sc">.</span>n_shutdown_dropped<span class="sc">}</span><span class="ss">)"</span>,</span>
-<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lead.alarm_file <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
-<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>            ax_score.axvline(</span>
-<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a>                x<span class="op">=</span>lead.alarm_file,</span>
-<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#3fb950"</span>,</span>
-<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a>                linestyle<span class="op">=</span><span class="st">"--"</span>,</span>
-<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a>                linewidth<span class="op">=</span><span class="fl">1.8</span>,</span>
-<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="ss">f"Sustained alarm (</span><span class="sc">{</span>lead<span class="sc">.</span>k<span class="sc">}</span><span class="ss">-of-</span><span class="sc">{</span>lead<span class="sc">.</span>m<span class="sc">}</span><span class="ss">)"</span>,</span>
-<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a>            ax_score.text(</span>
-<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a>                lead.alarm_file <span class="op">-</span> <span class="bu">max</span>(<span class="dv">2</span>, <span class="bu">len</span>(df) <span class="op">*</span> <span class="fl">0.01</span>),</span>
-<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>                ax_score.get_ylim()[<span class="dv">1</span>] <span class="op">*</span> <span class="fl">0.70</span> <span class="cf">if</span> ax_score.get_ylim()[<span class="dv">1</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.5</span>,</span>
-<span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a>                <span class="ss">f"</span><span class="sc">{</span>lead<span class="sc">.</span>lead_hours<span class="sc">:.0f}</span><span class="ss"> h warning</span><span class="ch">\n</span><span class="ss">file </span><span class="sc">{</span>lead<span class="sc">.</span>alarm_file<span class="sc">}</span><span class="ss"> of </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss">"</span>,</span>
-<span id="cb4-86"><a href="#cb4-86" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#3fb950"</span>,</span>
-<span id="cb4-87"><a href="#cb4-87" aria-hidden="true" tabindex="-1"></a>                fontsize<span class="op">=</span><span class="dv">8</span>,</span>
-<span id="cb4-88"><a href="#cb4-88" aria-hidden="true" tabindex="-1"></a>                fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
-<span id="cb4-89"><a href="#cb4-89" aria-hidden="true" tabindex="-1"></a>                ha<span class="op">=</span><span class="st">"right"</span>,</span>
-<span id="cb4-90"><a href="#cb4-90" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-91"><a href="#cb4-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-92"><a href="#cb4-92" aria-hidden="true" tabindex="-1"></a>        ax_score.axvline(</span>
-<span id="cb4-93"><a href="#cb4-93" aria-hidden="true" tabindex="-1"></a>            x<span class="op">=</span>lead.anchor_file, color<span class="op">=</span><span class="st">"#f85149"</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">"Failure"</span></span>
-<span id="cb4-94"><a href="#cb4-94" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb4-95"><a href="#cb4-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-96"><a href="#cb4-96" aria-hidden="true" tabindex="-1"></a>    ax_score.set_title(</span>
-<span id="cb4-97"><a href="#cb4-97" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>lead<span class="sc">.</span>lead_hours<span class="sc">:.0f}</span><span class="ss"> h warning, 0 false alarms in "</span></span>
-<span id="cb4-98"><a href="#cb4-98" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>lead<span class="sc">.</span>heldout_files<span class="sc">}</span><span class="ss"> healthy files"</span>,</span>
-<span id="cb4-99"><a href="#cb4-99" aria-hidden="true" tabindex="-1"></a>        fontsize<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb4-100"><a href="#cb4-100" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#e6edf3"</span>,</span>
-<span id="cb4-101"><a href="#cb4-101" aria-hidden="true" tabindex="-1"></a>        fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
-<span id="cb4-102"><a href="#cb4-102" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-103"><a href="#cb4-103" aria-hidden="true" tabindex="-1"></a>    ax_score.set_ylabel(<span class="ss">f"</span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss"> RMS (g)"</span>, color<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
-<span id="cb4-104"><a href="#cb4-104" aria-hidden="true" tabindex="-1"></a>    ax_score.legend(fontsize<span class="op">=</span><span class="dv">7</span>, loc<span class="op">=</span><span class="st">"upper left"</span>)</span>
-<span id="cb4-105"><a href="#cb4-105" aria-hidden="true" tabindex="-1"></a>    ax_score.grid(<span class="va">True</span>, color<span class="op">=</span><span class="st">"#30363d"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb4-106"><a href="#cb4-106" aria-hidden="true" tabindex="-1"></a>    ax_score.tick_params(colors<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
-<span id="cb4-107"><a href="#cb4-107" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-108"><a href="#cb4-108" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes[<span class="op">-</span><span class="dv">1</span>]:</span>
-<span id="cb4-109"><a href="#cb4-109" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">"File Index (Time →)"</span>, color<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
-<span id="cb4-110"><a href="#cb4-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-111"><a href="#cb4-111" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb4-112"><a href="#cb4-112" aria-hidden="true" tabindex="-1"></a>out_path <span class="op">=</span> FIGURES_DIR <span class="op">/</span> <span class="st">"all_tests_comparison.png"</span></span>
-<span id="cb4-113"><a href="#cb4-113" aria-hidden="true" tabindex="-1"></a>plt.savefig(out_path, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">"tight"</span>, facecolor<span class="op">=</span><span class="st">"#0d1117"</span>)</span>
-<span id="cb4-114"><a href="#cb4-114" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Saved: </span><span class="sc">{</span>repo_path(out_path)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb4-115"><a href="#cb4-115" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">3</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">18</span>, <span class="dv">13</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fig.patch.set_facecolor(<span class="st">"#0d1117"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>fig.suptitle(</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"NASA IMS Bearing Dataset — Predictive Maintenance via Anomaly Detection</span><span class="ch">\n</span><span class="st">"</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"All Three Test Runs | Isolation Forest | Sustained-alert rule, 1</span><span class="sc">% c</span><span class="st">alibrated FAR"</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    fontsize<span class="op">=</span><span class="dv">13</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    color<span class="op">=</span><span class="st">"#e6edf3"</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    y<span class="op">=</span><span class="fl">0.99</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>bearing_colors <span class="op">=</span> [<span class="st">"#58a6ff"</span>, <span class="st">"#3fb950"</span>, <span class="st">"#d29922"</span>, <span class="st">"#bc8cff"</span>]</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> row, (test_id, df) <span class="kw">in</span> <span class="bu">enumerate</span>(results.items()):</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    failed <span class="op">=</span> config[<span class="st">"failed_bearing"</span>]</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    rms_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss">_ch1_rms"</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    lead <span class="op">=</span> lead_by_test[test_id]</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    ax_rms <span class="op">=</span> axes[row, <span class="dv">0</span>]</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    ax_score <span class="op">=</span> axes[row, <span class="dv">1</span>]</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> [ax_rms, ax_score]:</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>        ax.set_facecolor(<span class="st">"#161b22"</span>)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ── Left: All bearings RMS ──</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, bearing <span class="kw">in</span> <span class="bu">enumerate</span>([<span class="st">"Bearing1"</span>, <span class="st">"Bearing2"</span>, <span class="st">"Bearing3"</span>, <span class="st">"Bearing4"</span>]):</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>bearing<span class="sc">}</span><span class="ss">_ch1_rms"</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> col <span class="kw">in</span> df.columns:</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>            lw <span class="op">=</span> <span class="fl">1.5</span> <span class="cf">if</span> bearing <span class="op">==</span> failed <span class="cf">else</span> <span class="fl">0.6</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>            alpha <span class="op">=</span> <span class="fl">1.0</span> <span class="cf">if</span> bearing <span class="op">==</span> failed <span class="cf">else</span> <span class="fl">0.5</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>            lbl <span class="op">=</span> bearing <span class="op">+</span> (<span class="st">" (failed)"</span> <span class="cf">if</span> bearing <span class="op">==</span> failed <span class="cf">else</span> <span class="st">""</span>)</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>            ax_rms.plot(</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>                df.index, df[col], color<span class="op">=</span>bearing_colors[i], linewidth<span class="op">=</span>lw, alpha<span class="op">=</span>alpha, label<span class="op">=</span>lbl</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    ax_rms.set_title(</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">: RMS — </span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>        fontsize<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#e6edf3"</span>,</span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>        fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>    ax_rms.set_ylabel(<span class="st">"RMS (g)"</span>, color<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    ax_rms.legend(fontsize<span class="op">=</span><span class="dv">7</span>, loc<span class="op">=</span><span class="st">"upper left"</span>)</span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    ax_rms.grid(<span class="va">True</span>, color<span class="op">=</span><span class="st">"#30363d"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>    ax_rms.tick_params(colors<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ── Right: Detection result, marked at the SUSTAINED alarm ──</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rms_col <span class="kw">in</span> df.columns:</span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>        ax_score.plot(df.index, df[rms_col], color<span class="op">=</span><span class="st">"#58a6ff"</span>, linewidth<span class="op">=</span><span class="fl">0.8</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">"RMS"</span>)</span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"is_anomaly"</span> <span class="kw">in</span> df.columns:</span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>            anom_mask <span class="op">=</span> df[<span class="st">"is_anomaly"</span>]</span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>            ax_score.scatter(</span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>                df.index[anom_mask],</span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>                df[rms_col][anom_mask],</span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#f85149"</span>,</span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>                s<span class="op">=</span><span class="dv">6</span>,</span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>                zorder<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>                alpha<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="st">"Flagged file (raw)"</span>,</span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>        <span class="co"># The post-shutdown tail is measured per run, not assumed to be one file.</span></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lead.n_shutdown_dropped:</span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>            ax_score.axvspan(</span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>                df.index[<span class="bu">len</span>(df) <span class="op">-</span> lead.n_shutdown_dropped],</span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>                df.index[<span class="op">-</span><span class="dv">1</span>],</span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#6e7681"</span>,</span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>                alpha<span class="op">=</span><span class="fl">0.35</span>,</span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="ss">f"Post-shutdown (</span><span class="sc">{</span>lead<span class="sc">.</span>n_shutdown_dropped<span class="sc">}</span><span class="ss">)"</span>,</span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> lead.alarm_file <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>            ax_score.axvline(</span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>                x<span class="op">=</span>lead.alarm_file,</span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#3fb950"</span>,</span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>                linestyle<span class="op">=</span><span class="st">"--"</span>,</span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>                linewidth<span class="op">=</span><span class="fl">1.8</span>,</span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="ss">f"Sustained alarm (</span><span class="sc">{</span>lead<span class="sc">.</span>k<span class="sc">}</span><span class="ss">-of-</span><span class="sc">{</span>lead<span class="sc">.</span>m<span class="sc">}</span><span class="ss">)"</span>,</span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>            ax_score.text(</span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>                lead.alarm_file <span class="op">-</span> <span class="bu">max</span>(<span class="dv">2</span>, <span class="bu">len</span>(df) <span class="op">*</span> <span class="fl">0.01</span>),</span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>                ax_score.get_ylim()[<span class="dv">1</span>] <span class="op">*</span> <span class="fl">0.70</span> <span class="cf">if</span> ax_score.get_ylim()[<span class="dv">1</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.5</span>,</span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>                <span class="ss">f"</span><span class="sc">{</span>lead<span class="sc">.</span>lead_hours<span class="sc">:.0f}</span><span class="ss"> h warning</span><span class="ch">\n</span><span class="ss">file </span><span class="sc">{</span>lead<span class="sc">.</span>alarm_file<span class="sc">}</span><span class="ss"> of </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">"#3fb950"</span>,</span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>                fontsize<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>                fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>                ha<span class="op">=</span><span class="st">"right"</span>,</span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a>        ax_score.axvline(</span>
+<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a>            x<span class="op">=</span>lead.anchor_file, color<span class="op">=</span><span class="st">"#f85149"</span>, linestyle<span class="op">=</span><span class="st">"-"</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">"Failure"</span></span>
+<span id="cb9-94"><a href="#cb9-94" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb9-95"><a href="#cb9-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-96"><a href="#cb9-96" aria-hidden="true" tabindex="-1"></a>    ax_score.set_title(</span>
+<span id="cb9-97"><a href="#cb9-97" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>lead<span class="sc">.</span>lead_hours<span class="sc">:.0f}</span><span class="ss"> h warning, 0 false alarms in "</span></span>
+<span id="cb9-98"><a href="#cb9-98" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>lead<span class="sc">.</span>heldout_files<span class="sc">}</span><span class="ss"> healthy files"</span>,</span>
+<span id="cb9-99"><a href="#cb9-99" aria-hidden="true" tabindex="-1"></a>        fontsize<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb9-100"><a href="#cb9-100" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#e6edf3"</span>,</span>
+<span id="cb9-101"><a href="#cb9-101" aria-hidden="true" tabindex="-1"></a>        fontweight<span class="op">=</span><span class="st">"bold"</span>,</span>
+<span id="cb9-102"><a href="#cb9-102" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-103"><a href="#cb9-103" aria-hidden="true" tabindex="-1"></a>    ax_score.set_ylabel(<span class="ss">f"</span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss"> RMS (g)"</span>, color<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
+<span id="cb9-104"><a href="#cb9-104" aria-hidden="true" tabindex="-1"></a>    ax_score.legend(fontsize<span class="op">=</span><span class="dv">7</span>, loc<span class="op">=</span><span class="st">"upper left"</span>)</span>
+<span id="cb9-105"><a href="#cb9-105" aria-hidden="true" tabindex="-1"></a>    ax_score.grid(<span class="va">True</span>, color<span class="op">=</span><span class="st">"#30363d"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb9-106"><a href="#cb9-106" aria-hidden="true" tabindex="-1"></a>    ax_score.tick_params(colors<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
+<span id="cb9-107"><a href="#cb9-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-108"><a href="#cb9-108" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes[<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb9-109"><a href="#cb9-109" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">"File Index (Time →)"</span>, color<span class="op">=</span><span class="st">"#e6edf3"</span>)</span>
+<span id="cb9-110"><a href="#cb9-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-111"><a href="#cb9-111" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb9-112"><a href="#cb9-112" aria-hidden="true" tabindex="-1"></a>out_path <span class="op">=</span> FIGURES_DIR <span class="op">/</span> <span class="st">"all_tests_comparison.png"</span></span>
+<span id="cb9-113"><a href="#cb9-113" aria-hidden="true" tabindex="-1"></a>plt.savefig(out_path, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">"tight"</span>, facecolor<span class="op">=</span><span class="st">"#0d1117"</span>)</span>
+<span id="cb9-114"><a href="#cb9-114" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Saved: </span><span class="sc">{</span>repo_path(out_path)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-115"><a href="#cb9-115" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Saved: results/figures/all_tests_comparison.png</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="04_results_visualization_files/figure-html/cell-5-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 <section id="lead-time-and-its-false-alarm-cost" class="level2">
 <h2 class="anchored" data-anchor-id="lead-time-and-its-false-alarm-cost">4. Lead Time and Its False-Alarm Cost</h2>
 <p><code>business.py</code> owns this metric; the cell below only renders it. That split is deliberate — an earlier version of this notebook computed lead time inline, and an inline copy of a metric drifts from the module until the two report different numbers with equal confidence.</p>
 <p>What the module does, and why each step is needed, is in its docstring. In short: the <code>is_anomaly</code> column cannot be used as an alarm, because <code>contamination</code> fixes the fraction of <em>healthy</em> training files labelled anomalous, so a metric triggering on the first flag just measures the length of the run. The threshold is instead calibrated on healthy data to a chosen false-alarm rate, a k-of-m sustained rule is chosen against healthy data alone, and the post-shutdown tail is measured rather than assumed to be one file.</p>
-<div id="cell-10" class="cell">
+<div id="cell-10" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:58.451685Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:58.451580Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:58.455968Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:58.455417Z&quot;}}" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"LEAD TIME AND FALSE-ALARM COST"</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">78</span>)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> lead_results:</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(format_result(r))</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> pd.DataFrame([r.to_row() <span class="cf">for</span> r <span class="kw">in</span> lead_results])</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>summary.to_csv(REPORTS_DIR <span class="op">/</span> <span class="st">"business_summary.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Saved: results/reports/business_summary.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"LEAD TIME AND FALSE-ALARM COST"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">78</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> lead_results:</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(format_result(r))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> pd.DataFrame([r.to_row() <span class="cf">for</span> r <span class="kw">in</span> lead_results])</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>summary.to_csv(REPORTS_DIR <span class="op">/</span> <span class="st">"business_summary.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Saved: results/reports/business_summary.csv"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>LEAD TIME AND FALSE-ALARM COST
+==============================================================================
+Test 1 -- Bearing3 (Inner race failure (Bearing 4 roller element also failed))
+  Feature source     : enriched
+  Files              : 2156 (0 post-shutdown dropped, 2156 live)
+  Rule               : 3 of last 5 windows, score &lt; -0.1532 (calibrated to 1.0% per-file)
+  First alarm        : file 1830 at 2003-11-22 16:06:56
+  Failure anchor     : file 2155 at 2003-11-25 23:39:56
+  Lead time          : 79.5 h
+  False-alarm cost   : 0 sustained alarms in 323 healthy files (164.9 h) -- an upper bound of &lt; 1 in 323, not a measured rate of zero
+  Healthy region     : peak 1.02x baseline (ok)
+  Note: No post-shutdown tail: this run ends on a live acquisition, so the anchor is the last recorded file.
+
+Test 2 -- Bearing1 (Outer race failure)
+  Feature source     : enriched
+  Files              : 984 (2 post-shutdown dropped, 982 live)
+  Rule               : 3 of last 5 windows, score &lt; -0.1384 (calibrated to 1.0% per-file)
+  First alarm        : file 659 at 2004-02-17 00:22:39
+  Failure anchor     : file 981 at 2004-02-19 06:02:39
+  Lead time          : 53.7 h
+  False-alarm cost   : 0 sustained alarms in 147 healthy files (24.3 h) -- an upper bound of &lt; 1 in 147, not a measured rate of zero
+  Healthy region     : peak 1.04x baseline (ok)
+
+Test 3 -- Bearing3 (Outer race failure)
+  Feature source     : enriched
+  Files              : 6324 (1 post-shutdown dropped, 6323 live)
+  Rule               : 4 of last 5 windows, score &lt; -0.2025 (calibrated to 1.0% per-file)
+  First alarm        : file 5980 at 2004-04-15 17:32:55
+  Failure anchor     : file 6322 at 2004-04-18 02:32:55
+  Lead time          : 57.0 h
+  False-alarm cost   : 0 sustained alarms in 949 healthy files (165.3 h) -- an upper bound of &lt; 1 in 949, not a measured rate of zero
+  Healthy region     : peak 1.12x baseline (ok)
+
+Saved: results/reports/business_summary.csv</code></pre>
+</div>
 </div>
 <section id="what-the-warning-is-worth" class="level3">
 <h3 class="anchored" data-anchor-id="what-the-warning-is-worth">What the warning is worth</h3>
 <p>Lead time is <strong>not</strong> multiplied by an hourly rate. That prices hours during which the machine was still running normally, and it is the mistake the earlier inline version made.</p>
 <p>Warning converts an <em>unplanned</em> stoppage into a <em>planned</em> one, so the saving is the difference between the two stoppage lengths — and it is realised only if the warning is long enough to order the part and book a window. Past that point a longer warning does not save more money, which is why the figures below are flat across all three tests.</p>
 <p>Every number in the model is an assumption, not a measurement, so the rate is varied rather than asserted. The published whole-facility figures printed underneath are there for scale only: a single bearing is not a whole plant, and the gap between the two is the point.</p>
-<div id="cell-12" class="cell">
+<div id="cell-12" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:58.456880Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:58.456788Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:58.462654Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:58.462088Z&quot;}}" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> DowntimeCostModel()</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Model assumptions: </span><span class="sc">{</span>model<span class="sc">.</span>assumptions()<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>cost_tables <span class="op">=</span> []</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> lead_results:</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    table <span class="op">=</span> cost_sensitivity(r.lead_hours, model<span class="op">=</span>model)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    table.insert(<span class="dv">0</span>, <span class="st">"test"</span>, r.test_id)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    cost_tables.append(table)</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>cost_df <span class="op">=</span> pd.concat(cost_tables, ignore_index<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cost_df.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>cost_df.to_csv(REPORTS_DIR <span class="op">/</span> <span class="st">"business_cost_sensitivity.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Saved: results/reports/business_cost_sensitivity.csv</span><span class="ch">\n</span><span class="st">"</span>)</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"For scale -- published whole-facility rates, NOT the rate used above:"</span>)</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, usd <span class="kw">in</span> PUBLISHED_HOURLY_COST.items():</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  USD </span><span class="sc">{</span>usd<span class="sc">:&gt;9,.0f}</span><span class="ss">/h  </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> DowntimeCostModel()</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Model assumptions: </span><span class="sc">{</span>model<span class="sc">.</span>assumptions()<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>cost_tables <span class="op">=</span> []</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> r <span class="kw">in</span> lead_results:</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    table <span class="op">=</span> cost_sensitivity(r.lead_hours, model<span class="op">=</span>model)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    table.insert(<span class="dv">0</span>, <span class="st">"test"</span>, r.test_id)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    cost_tables.append(table)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>cost_df <span class="op">=</span> pd.concat(cost_tables, ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cost_df.to_string(index<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>cost_df.to_csv(REPORTS_DIR <span class="op">/</span> <span class="st">"business_cost_sensitivity.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Saved: results/reports/business_cost_sensitivity.csv</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"For scale -- published whole-facility rates, NOT the rate used above:"</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, usd <span class="kw">in</span> PUBLISHED_HOURLY_COST.items():</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  USD </span><span class="sc">{</span>usd<span class="sc">:&gt;9,.0f}</span><span class="ss">/h  </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Model assumptions: EUR 15,000/h line stoppage; unplanned repair 24 h vs planned 4 h; warning must exceed 24 h to be actionable. All four are assumptions, not measurements.
+
+ test  hourly_cost_eur  lead_hours  actionable  cost_avoided_eur
+    1             5000   79.550000        True          100000.0
+    1            10000   79.550000        True          200000.0
+    1            15000   79.550000        True          300000.0
+    1            20000   79.550000        True          400000.0
+    2             5000   53.666667        True          100000.0
+    2            10000   53.666667        True          200000.0
+    2            15000   53.666667        True          300000.0
+    2            20000   53.666667        True          400000.0
+    3             5000   57.000000        True          100000.0
+    3            10000   57.000000        True          200000.0
+    3            15000   57.000000        True          300000.0
+    3            20000   57.000000        True          400000.0
+
+Saved: results/reports/business_cost_sensitivity.csv
+
+For scale -- published whole-facility rates, NOT the rate used above:
+  USD   532,000/h  large industrial facility (Senseye/Siemens 2022)
+  USD 1,300,000/h  automotive plant (Senseye/Siemens 2022)
+  USD    36,000/h  fast-moving consumer goods plant (Senseye/Siemens 2022)</code></pre>
+</div>
 </div>
 </section>
 </section>
 <section id="write-the-readme-hero-figure" class="level2">
 <h2 class="anchored" data-anchor-id="write-the-readme-hero-figure">5. Write the README Hero Figure</h2>
 <p><code>figures/headline/</code> holds only the figures the README embeds, matching the rest of the portfolio. Everything else stays under <code>results/figures/</code>.</p>
-<div id="cell-14" class="cell">
+<div id="cell-14" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:58.463520Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:58.463427Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:58.466652Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:58.466065Z&quot;}}" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>src <span class="op">=</span> FIGURES_DIR <span class="op">/</span> <span class="st">"all_tests_comparison.png"</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>dst <span class="op">=</span> HEADLINE_DIR <span class="op">/</span> <span class="st">"01_all_tests_comparison.png"</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> src.exists():</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    shutil.copy(src, dst)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Saved: </span><span class="sc">{</span>repo_path(dst)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Embedded in README.md as: ![Results](figures/headline/01_all_tests_comparison.png)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>src <span class="op">=</span> FIGURES_DIR <span class="op">/</span> <span class="st">"all_tests_comparison.png"</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>dst <span class="op">=</span> HEADLINE_DIR <span class="op">/</span> <span class="st">"01_all_tests_comparison.png"</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> src.exists():</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    shutil.copy(src, dst)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Saved: </span><span class="sc">{</span>repo_path(dst)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"   Embedded in README.md as: ![Results](figures/headline/01_all_tests_comparison.png)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Saved: figures/headline/01_all_tests_comparison.png
+   Embedded in README.md as: ![Results](figures/headline/01_all_tests_comparison.png)</code></pre>
+</div>
 </div>
 
 

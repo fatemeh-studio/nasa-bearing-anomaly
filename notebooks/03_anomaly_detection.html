@@ -231,7 +231,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p><strong>No labels reach the model.</strong> The failure mode is known from the IMS documentation, but it is used only to decide which bearing to look at afterwards.</p>
 <hr>
-<div id="cell-2" class="cell">
+<div id="cell-2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:31.802820Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:31.802731Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:33.377873Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:33.377291Z&quot;}}" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -251,6 +251,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Imports OK"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Imports OK</code></pre>
+</div>
 </div>
 <section id="why-isolation-forest" class="level2">
 <h2 class="anchored" data-anchor-id="why-isolation-forest">1. Why Isolation Forest?</h2>
@@ -260,229 +263,343 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="run-detection-all-three-tests" class="level2">
 <h2 class="anchored" data-anchor-id="run-detection-all-three-tests">2. Run Detection: All Three Tests</h2>
-<div id="cell-5" class="cell">
+<div id="cell-5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:33.392755Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:33.392566Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:34.996699Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:34.996093Z&quot;}}" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="sc">{</span><span class="st">'='</span> <span class="op">*</span> <span class="dv">60</span><span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>TEST_CONFIG[test_id][<span class="st">'failed_bearing'</span>]<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>TEST_CONFIG[test_id][<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'='</span> <span class="op">*</span> <span class="dv">60</span><span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    results[test_id] <span class="op">=</span> run_pipeline(test_id, method<span class="op">=</span><span class="st">"isolation_forest"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="sc">{</span><span class="st">'='</span> <span class="op">*</span> <span class="dv">60</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>TEST_CONFIG[test_id][<span class="st">'failed_bearing'</span>]<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>TEST_CONFIG[test_id][<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="st">'='</span> <span class="op">*</span> <span class="dv">60</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    results[test_id] <span class="op">=</span> run_pipeline(test_id, method<span class="op">=</span><span class="st">"isolation_forest"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+============================================================
+Test 1: Bearing3 — Inner race failure (Bearing 4 roller element also failed)
+============================================================
+Feature source: enriched (test1_features.csv, 178 columns)
+Failed bearing: Bearing3 | Features selected: 40 (source: enriched)
+  IsolationForest fitted on 1293 healthy samples (40 features)
+  Anomalies detected: 458/2156 (21.2%)
+  First flagged file: 0 (diagnostic; not a lead time)
+  Model saved to results/reports/test1_model/isolation_forest.pkl
+Results saved: results/reports/test1_isolation_forest_results.csv
+
+============================================================
+Test 2: Bearing1 — Outer race failure
+============================================================
+Feature source: enriched (test2_features.csv, 90 columns)
+Failed bearing: Bearing1 | Features selected: 20 (source: enriched)
+  IsolationForest fitted on 590 healthy samples (20 features)
+  Anomalies detected: 417/984 (42.4%)
+  First flagged file: 0 (diagnostic; not a lead time)
+  Model saved to results/reports/test2_model/isolation_forest.pkl
+Results saved: results/reports/test2_isolation_forest_results.csv
+
+============================================================
+Test 3: Bearing3 — Outer race failure
+============================================================
+Feature source: enriched (test3_features.csv, 90 columns)
+Failed bearing: Bearing3 | Features selected: 20 (source: enriched)
+  IsolationForest fitted on 3794 healthy samples (20 features)
+  Anomalies detected: 1287/6324 (20.4%)
+  First flagged file: 0 (diagnostic; not a lead time)
+  Model saved to results/reports/test3_model/isolation_forest.pkl
+Results saved: results/reports/test3_isolation_forest_results.csv</code></pre>
+</div>
 </div>
 </section>
 <section id="results-summary" class="level2">
 <h2 class="anchored" data-anchor-id="results-summary">3. Results Summary</h2>
-<div id="cell-7" class="cell">
+<div id="cell-7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:34.997937Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:34.997835Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:35.005934Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:35.005405Z&quot;}}" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span> <span class="op">+</span> <span class="st">"═"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"ANOMALY DETECTION RESULTS SUMMARY"</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"═"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span><span class="st">'Test'</span><span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Failed Bearing'</span><span class="sc">:&lt;15}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Files'</span><span class="sc">:&lt;8}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Anomalies'</span><span class="sc">:&lt;11}</span><span class="ss"> "</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span><span class="st">'First flag'</span><span class="sc">:&lt;13}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Raw Lead'</span><span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"─"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id, df <span class="kw">in</span> results.items():</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(df)</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    n_anom <span class="op">=</span> df[<span class="st">"is_anomaly"</span>].<span class="bu">sum</span>()</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    first_anom <span class="op">=</span> df[df[<span class="st">"is_anomaly"</span>]].index.<span class="bu">min</span>() <span class="cf">if</span> n_anom <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> n</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Lead time measured from the acquisition timestamps, not from an assumed</span></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># sampling interval. The timestamps parse correctly as of 2026-08-12.</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    stamps <span class="op">=</span> pd.to_datetime(df[<span class="st">"timestamp"</span>])</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    lead_hours <span class="op">=</span> (</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        (stamps.iloc[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> stamps.loc[first_anom]).total_seconds() <span class="op">/</span> <span class="dv">3600</span> <span class="cf">if</span> n_anom <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.0</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>test_id<span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span>config[<span class="st">'failed_bearing'</span>]<span class="sc">:&lt;15}</span><span class="ss"> </span><span class="sc">{</span>n<span class="sc">:&lt;8}</span><span class="ss"> "</span></span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>n_anom<span class="sc">:&lt;11}</span><span class="ss"> </span><span class="sc">{</span>first_anom<span class="sc">:&lt;13}</span><span class="ss"> </span><span class="sc">{</span>lead_hours<span class="sc">:&gt;6.1f}</span><span class="ss"> h"</span></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"═"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"These are RAW lead times, and they are NOT a result. They are printed to show"</span>)</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"why the obvious metric fails, which is a measurement rather than a prediction:"</span>)</span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"every run flags file 0, so 'raw lead' is just the length of the run."</span>)</span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Three things are missing:"</span>)</span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  1. The trigger is a single flagged file. contamination labels that fraction of"</span>)</span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     the model's own training window anomalous by construction, so the first flag"</span>)</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     lands at or near 0 no matter how healthy the bearing is. A sustained rule --"</span>)</span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     k of the last m files flagged -- replaces it."</span>)</span>
-<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  2. No false-alarm rate. A lead time without its false-alarm cost is not a"</span>)</span>
-<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     finding, and the rate has to be calibrated on held-out healthy data."</span>)</span>
-<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  3. The post-shutdown tail has to be excluded, and it is a DIFFERENT LENGTH in"</span>)</span>
-<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     each run -- 0 files for Test 1, 2 for Test 2, 1 for Test 3. Test 1 never went"</span>)</span>
-<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     quiet and ends on its RMS peak, so dropping 'the last file' there would"</span>)</span>
-<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     discard the very failure being measured. See data/README.md."</span>)</span>
-<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"All three are implemented in business.py. Notebook 04 reports the result:"</span>)</span>
-<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"79.5 / 53.7 / 57.0 h, against 0 sustained alarms in 323 / 147 / 949 held-out"</span>)</span>
-<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"healthy files. No euro figure follows from the raw numbers above."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span> <span class="op">+</span> <span class="st">"═"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"ANOMALY DETECTION RESULTS SUMMARY"</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"═"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span><span class="st">'Test'</span><span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Failed Bearing'</span><span class="sc">:&lt;15}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Files'</span><span class="sc">:&lt;8}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Anomalies'</span><span class="sc">:&lt;11}</span><span class="ss"> "</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span><span class="st">'First flag'</span><span class="sc">:&lt;13}</span><span class="ss"> </span><span class="sc">{</span><span class="st">'Raw Lead'</span><span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"─"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id, df <span class="kw">in</span> results.items():</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(df)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    n_anom <span class="op">=</span> df[<span class="st">"is_anomaly"</span>].<span class="bu">sum</span>()</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    first_anom <span class="op">=</span> df[df[<span class="st">"is_anomaly"</span>]].index.<span class="bu">min</span>() <span class="cf">if</span> n_anom <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> n</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Lead time measured from the acquisition timestamps, not from an assumed</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># sampling interval. The timestamps parse correctly as of 2026-08-12.</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    stamps <span class="op">=</span> pd.to_datetime(df[<span class="st">"timestamp"</span>])</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    lead_hours <span class="op">=</span> (</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        (stamps.iloc[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> stamps.loc[first_anom]).total_seconds() <span class="op">/</span> <span class="dv">3600</span> <span class="cf">if</span> n_anom <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.0</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>test_id<span class="sc">:&lt;6}</span><span class="ss"> </span><span class="sc">{</span>config[<span class="st">'failed_bearing'</span>]<span class="sc">:&lt;15}</span><span class="ss"> </span><span class="sc">{</span>n<span class="sc">:&lt;8}</span><span class="ss"> "</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>n_anom<span class="sc">:&lt;11}</span><span class="ss"> </span><span class="sc">{</span>first_anom<span class="sc">:&lt;13}</span><span class="ss"> </span><span class="sc">{</span>lead_hours<span class="sc">:&gt;6.1f}</span><span class="ss"> h"</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"═"</span> <span class="op">*</span> <span class="dv">70</span>)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"These are RAW lead times, and they are NOT a result. They are printed to show"</span>)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"why the obvious metric fails, which is a measurement rather than a prediction:"</span>)</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"every run flags file 0, so 'raw lead' is just the length of the run."</span>)</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Three things are missing:"</span>)</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  1. The trigger is a single flagged file. contamination labels that fraction of"</span>)</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     the model's own training window anomalous by construction, so the first flag"</span>)</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     lands at or near 0 no matter how healthy the bearing is. A sustained rule --"</span>)</span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     k of the last m files flagged -- replaces it."</span>)</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  2. No false-alarm rate. A lead time without its false-alarm cost is not a"</span>)</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     finding, and the rate has to be calibrated on held-out healthy data."</span>)</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"  3. The post-shutdown tail has to be excluded, and it is a DIFFERENT LENGTH in"</span>)</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     each run -- 0 files for Test 1, 2 for Test 2, 1 for Test 3. Test 1 never went"</span>)</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     quiet and ends on its RMS peak, so dropping 'the last file' there would"</span>)</span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"     discard the very failure being measured. See data/README.md."</span>)</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"All three are implemented in business.py. Notebook 04 reports the result:"</span>)</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"79.5 / 53.7 / 57.0 h, against 0 sustained alarms in 323 / 147 / 949 held-out"</span>)</span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"healthy files. No euro figure follows from the raw numbers above."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+══════════════════════════════════════════════════════════════════════
+ANOMALY DETECTION RESULTS SUMMARY
+══════════════════════════════════════════════════════════════════════
+Test   Failed Bearing  Files    Anomalies   First flag    Raw Lead
+──────────────────────────────────────────────────────────────────────
+1      Bearing3        2156     458         0              827.6 h
+2      Bearing1        984      417         0              163.8 h
+3      Bearing3        6324     1287        0             1073.3 h
+══════════════════════════════════════════════════════════════════════
+
+These are RAW lead times, and they are NOT a result. They are printed to show
+why the obvious metric fails, which is a measurement rather than a prediction:
+every run flags file 0, so 'raw lead' is just the length of the run.
+
+Three things are missing:
+  1. The trigger is a single flagged file. contamination labels that fraction of
+     the model's own training window anomalous by construction, so the first flag
+     lands at or near 0 no matter how healthy the bearing is. A sustained rule --
+     k of the last m files flagged -- replaces it.
+  2. No false-alarm rate. A lead time without its false-alarm cost is not a
+     finding, and the rate has to be calibrated on held-out healthy data.
+  3. The post-shutdown tail has to be excluded, and it is a DIFFERENT LENGTH in
+     each run -- 0 files for Test 1, 2 for Test 2, 1 for Test 3. Test 1 never went
+     quiet and ends on its RMS peak, so dropping 'the last file' there would
+     discard the very failure being measured. See data/README.md.
+
+All three are implemented in business.py. Notebook 04 reports the result:
+79.5 / 53.7 / 57.0 h, against 0 sustained alarms in 323 / 147 / 949 held-out
+healthy files. No euro figure follows from the raw numbers above.</code></pre>
+</div>
 </div>
 </section>
 <section id="visualization-all-tests" class="level2">
 <h2 class="anchored" data-anchor-id="visualization-all-tests">4. Visualization: All Tests</h2>
 <p>Raw detector output, one panel pair per run. The red markers are <code>is_anomaly</code> straight from the Isolation Forest, and they are deliberately <strong>not</strong> an alert: <code>contamination</code> labels that fraction of the model’s own training window anomalous by construction, so flagged files appear throughout the healthy region of every run and the first of them lands at or near file 0.</p>
 <p>Turning this into something a maintenance team could act on needs a sustained-alert rule and a score threshold calibrated against held-out healthy data. That is notebook 04 and <code>business.py</code>. Nothing in these panels is a lead time.</p>
-<div id="cell-9" class="cell">
+<div id="cell-9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:35.006864Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:35.006770Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:35.974859Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:35.974214Z&quot;}}" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id, df <span class="kw">in</span> results.items():</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    failed <span class="op">=</span> config[<span class="st">"failed_bearing"</span>]</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    rms_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss">_ch1_rms"</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    score_col <span class="op">=</span> <span class="st">"anomaly_score"</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">7</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    fig.suptitle(</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># RMS. No first-alert line: it would sit at file 0 on every run, which is an</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># artefact of contamination rather than a detection. The sustained alarm is</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># derived in notebook 04 and marked there.</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rms_col <span class="kw">in</span> df.columns:</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        ax1.plot(df.index, df[rms_col], color<span class="op">=</span>STYLE[<span class="st">"accent_color"</span>], linewidth<span class="op">=</span><span class="fl">0.8</span>, label<span class="op">=</span><span class="st">"RMS"</span>)</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"is_anomaly"</span> <span class="kw">in</span> df.columns:</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            anom_mask <span class="op">=</span> df[<span class="st">"is_anomaly"</span>]</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            ax1.scatter(</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>                df.index[anom_mask],</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>                df[rms_col][anom_mask],</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span>STYLE[<span class="st">"anomaly_color"</span>],</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>                s<span class="op">=</span><span class="dv">8</span>,</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>                zorder<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="st">"Flagged file (raw)"</span>,</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    ax1.set_ylabel(<span class="st">"RMS (g)"</span>)</span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    ax1.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    ax1.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Anomaly score</span></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> score_col <span class="kw">in</span> df.columns:</span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        s <span class="op">=</span> df[score_col]</span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>        s_norm <span class="op">=</span> (s <span class="op">-</span> s.<span class="bu">min</span>()) <span class="op">/</span> (s.<span class="bu">max</span>() <span class="op">-</span> s.<span class="bu">min</span>() <span class="op">+</span> <span class="fl">1e-12</span>)</span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>        ax2.plot(df.index, s_norm, color<span class="op">=</span>STYLE[<span class="st">"warn_color"</span>], linewidth<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"is_anomaly"</span> <span class="kw">in</span> df.columns:</span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>            ax2.fill_between(</span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>                df.index,</span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>                s_norm,</span>
-<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>                where<span class="op">=</span>df[<span class="st">"is_anomaly"</span>],</span>
-<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span>STYLE[<span class="st">"anomaly_color"</span>],</span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>                alpha<span class="op">=</span><span class="fl">0.4</span>,</span>
-<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="st">"Flagged"</span>,</span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        ax2.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    ax2.set_ylabel(<span class="st">"Anomaly Score"</span>)</span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    ax2.set_xlabel(<span class="st">"File Index"</span>)</span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>    ax2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    plt.savefig(</span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        FIGURES_DIR <span class="op">/</span> <span class="ss">f"detection_test</span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">.png"</span>,</span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>        dpi<span class="op">=</span><span class="dv">150</span>,</span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>        bbox_inches<span class="op">=</span><span class="st">"tight"</span>,</span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>        facecolor<span class="op">=</span>STYLE[<span class="st">"bg_color"</span>],</span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> test_id, df <span class="kw">in</span> results.items():</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    failed <span class="op">=</span> config[<span class="st">"failed_bearing"</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    rms_col <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss">_ch1_rms"</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    score_col <span class="op">=</span> <span class="st">"anomaly_score"</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">7</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    fig.suptitle(</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>failed<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># RMS. No first-alert line: it would sit at file 0 on every run, which is an</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># artefact of contamination rather than a detection. The sustained alarm is</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># derived in notebook 04 and marked there.</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rms_col <span class="kw">in</span> df.columns:</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        ax1.plot(df.index, df[rms_col], color<span class="op">=</span>STYLE[<span class="st">"accent_color"</span>], linewidth<span class="op">=</span><span class="fl">0.8</span>, label<span class="op">=</span><span class="st">"RMS"</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"is_anomaly"</span> <span class="kw">in</span> df.columns:</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>            anom_mask <span class="op">=</span> df[<span class="st">"is_anomaly"</span>]</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>            ax1.scatter(</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                df.index[anom_mask],</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>                df[rms_col][anom_mask],</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span>STYLE[<span class="st">"anomaly_color"</span>],</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>                s<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>                zorder<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="st">"Flagged file (raw)"</span>,</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    ax1.set_ylabel(<span class="st">"RMS (g)"</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    ax1.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    ax1.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Anomaly score</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> score_col <span class="kw">in</span> df.columns:</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>        s <span class="op">=</span> df[score_col]</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>        s_norm <span class="op">=</span> (s <span class="op">-</span> s.<span class="bu">min</span>()) <span class="op">/</span> (s.<span class="bu">max</span>() <span class="op">-</span> s.<span class="bu">min</span>() <span class="op">+</span> <span class="fl">1e-12</span>)</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>        ax2.plot(df.index, s_norm, color<span class="op">=</span>STYLE[<span class="st">"warn_color"</span>], linewidth<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="st">"is_anomaly"</span> <span class="kw">in</span> df.columns:</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>            ax2.fill_between(</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>                df.index,</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>                s_norm,</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>                where<span class="op">=</span>df[<span class="st">"is_anomaly"</span>],</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span>STYLE[<span class="st">"anomaly_color"</span>],</span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>                alpha<span class="op">=</span><span class="fl">0.4</span>,</span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>                label<span class="op">=</span><span class="st">"Flagged"</span>,</span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>        ax2.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>    ax2.set_ylabel(<span class="st">"Anomaly Score"</span>)</span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    ax2.set_xlabel(<span class="st">"File Index"</span>)</span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    ax2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>    plt.savefig(</span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>        FIGURES_DIR <span class="op">/</span> <span class="ss">f"detection_test</span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss">.png"</span>,</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>        dpi<span class="op">=</span><span class="dv">150</span>,</span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>        bbox_inches<span class="op">=</span><span class="st">"tight"</span>,</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>        facecolor<span class="op">=</span>STYLE[<span class="st">"bg_color"</span>],</span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03_anomaly_detection_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03_anomaly_detection_files/figure-html/cell-5-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03_anomaly_detection_files/figure-html/cell-5-output-3.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 <section id="pca-feature-space-visualization" class="level2">
 <h2 class="anchored" data-anchor-id="pca-feature-space-visualization">5. PCA Feature Space Visualization</h2>
-<div id="cell-11" class="cell">
+<div id="cell-11" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:35.975932Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:35.975831Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:36.476178Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:36.475590Z&quot;}}" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.patches <span class="im">import</span> Patch</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">18</span>, <span class="dv">5</span>))</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fig.suptitle(<span class="st">"PCA Feature Space — Normal (green) vs Anomaly (red)"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (test_id, df) <span class="kw">in</span> <span class="bu">zip</span>(axes, results.items(), strict<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    failed <span class="op">=</span> config[<span class="st">"failed_bearing"</span>]</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    feature_cols <span class="op">=</span> select_features(df, bearing_prefix<span class="op">=</span>failed)</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(feature_cols) <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        feature_cols <span class="op">=</span> select_features(df)</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> df[feature_cols].fillna(<span class="dv">0</span>).to_numpy()</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    X_scaled <span class="op">=</span> StandardScaler().fit_transform(X)</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    X_2d <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>).fit_transform(X_scaled)</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> [</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        STYLE[<span class="st">"anomaly_color"</span>] <span class="cf">if</span> a <span class="cf">else</span> STYLE[<span class="st">"healthy_color"</span>]</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> a <span class="kw">in</span> df.get(<span class="st">"is_anomaly"</span>, [<span class="va">False</span>] <span class="op">*</span> <span class="bu">len</span>(df))</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    ax.scatter(X_2d[:, <span class="dv">0</span>], X_2d[:, <span class="dv">1</span>], c<span class="op">=</span>colors, s<span class="op">=</span><span class="dv">10</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    ax.set_title(</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>failed<span class="sc">}</span><span class="ch">\n</span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">"bold"</span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">"PC1"</span>)</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">"PC2"</span>)</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>legend_elems <span class="op">=</span> [</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    Patch(facecolor<span class="op">=</span>STYLE[<span class="st">"healthy_color"</span>], label<span class="op">=</span><span class="st">"Normal"</span>),</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    Patch(facecolor<span class="op">=</span>STYLE[<span class="st">"anomaly_color"</span>], label<span class="op">=</span><span class="st">"Anomaly"</span>),</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>fig.legend(</span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    handles<span class="op">=</span>legend_elems, loc<span class="op">=</span><span class="st">"lower center"</span>, ncol<span class="op">=</span><span class="dv">2</span>, fontsize<span class="op">=</span><span class="dv">10</span>, bbox_to_anchor<span class="op">=</span>(<span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.05</span>)</span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>plt.savefig(</span>
-<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>    FIGURES_DIR <span class="op">/</span> <span class="st">"pca_all_tests.png"</span>,</span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>    dpi<span class="op">=</span><span class="dv">150</span>,</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>    bbox_inches<span class="op">=</span><span class="st">"tight"</span>,</span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>    facecolor<span class="op">=</span>STYLE[<span class="st">"bg_color"</span>],</span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.patches <span class="im">import</span> Patch</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">18</span>, <span class="dv">5</span>))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>fig.suptitle(<span class="st">"PCA Feature Space — Normal (green) vs Anomaly (red)"</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">"bold"</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (test_id, df) <span class="kw">in</span> <span class="bu">zip</span>(axes, results.items(), strict<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    config <span class="op">=</span> TEST_CONFIG[test_id]</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    failed <span class="op">=</span> config[<span class="st">"failed_bearing"</span>]</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    feature_cols <span class="op">=</span> select_features(df, bearing_prefix<span class="op">=</span>failed)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(feature_cols) <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        feature_cols <span class="op">=</span> select_features(df)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> df[feature_cols].fillna(<span class="dv">0</span>).to_numpy()</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    X_scaled <span class="op">=</span> StandardScaler().fit_transform(X)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    X_2d <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>).fit_transform(X_scaled)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> [</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        STYLE[<span class="st">"anomaly_color"</span>] <span class="cf">if</span> a <span class="cf">else</span> STYLE[<span class="st">"healthy_color"</span>]</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> a <span class="kw">in</span> df.get(<span class="st">"is_anomaly"</span>, [<span class="va">False</span>] <span class="op">*</span> <span class="bu">len</span>(df))</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    ax.scatter(X_2d[:, <span class="dv">0</span>], X_2d[:, <span class="dv">1</span>], c<span class="op">=</span>colors, s<span class="op">=</span><span class="dv">10</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    ax.set_title(</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"Test </span><span class="sc">{</span>test_id<span class="sc">}</span><span class="ss"> — </span><span class="sc">{</span>failed<span class="sc">}</span><span class="ch">\n</span><span class="sc">{</span>config[<span class="st">'failure_mode'</span>]<span class="sc">}</span><span class="ss">"</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">"bold"</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">"PC1"</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">"PC2"</span>)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>legend_elems <span class="op">=</span> [</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    Patch(facecolor<span class="op">=</span>STYLE[<span class="st">"healthy_color"</span>], label<span class="op">=</span><span class="st">"Normal"</span>),</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    Patch(facecolor<span class="op">=</span>STYLE[<span class="st">"anomaly_color"</span>], label<span class="op">=</span><span class="st">"Anomaly"</span>),</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>fig.legend(</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    handles<span class="op">=</span>legend_elems, loc<span class="op">=</span><span class="st">"lower center"</span>, ncol<span class="op">=</span><span class="dv">2</span>, fontsize<span class="op">=</span><span class="dv">10</span>, bbox_to_anchor<span class="op">=</span>(<span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.05</span>)</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>plt.savefig(</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    FIGURES_DIR <span class="op">/</span> <span class="st">"pca_all_tests.png"</span>,</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>    dpi<span class="op">=</span><span class="dv">150</span>,</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>    bbox_inches<span class="op">=</span><span class="st">"tight"</span>,</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    facecolor<span class="op">=</span>STYLE[<span class="st">"bg_color"</span>],</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="03_anomaly_detection_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 </section>
 <section id="optional-autoencoder-for-test-3" class="level2">
 <h2 class="anchored" data-anchor-id="optional-autoencoder-for-test-3">6. (Optional) Autoencoder for Test 3</h2>
 <p>Test 3 has a gradual multi-phase degradation that benefits from the autoencoder’s deeper representation learning.</p>
-<div id="cell-13" class="cell">
+<div id="cell-13" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-08-15T07:17:36.477261Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-08-15T07:17:36.477158Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-08-15T07:17:49.827487Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-08-15T07:17:49.826883Z&quot;}}" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.detection <span class="im">import</span> TORCH_AVAILABLE</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> TORCH_AVAILABLE:</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Running Autoencoder on Test 3..."</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    ae_result <span class="op">=</span> run_pipeline(<span class="dv">3</span>, method<span class="op">=</span><span class="st">"autoencoder"</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compare the two detectors on the same diagnostic. Both land at 0 for the same</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># structural reason, which is the point: swapping the model does not fix a metric</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># that was never measuring detection. business.py is what fixes it, and it handles</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the autoencoder's inverted sign convention.</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    if_first <span class="op">=</span> (</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        results[<span class="dv">3</span>][results[<span class="dv">3</span>][<span class="st">"is_anomaly"</span>]].index.<span class="bu">min</span>() <span class="cf">if</span> results[<span class="dv">3</span>][<span class="st">"is_anomaly"</span>].<span class="bu">any</span>() <span class="cf">else</span> <span class="va">None</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    ae_first <span class="op">=</span> (</span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        ae_result[ae_result[<span class="st">"is_anomaly"</span>]].index.<span class="bu">min</span>() <span class="cf">if</span> ae_result[<span class="st">"is_anomaly"</span>].<span class="bu">any</span>() <span class="cf">else</span> <span class="va">None</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Test 3, first flagged file (a diagnostic, not a lead time):"</span>)</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Isolation Forest: </span><span class="sc">{</span>if_first<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Autoencoder:      </span><span class="sc">{</span>ae_first<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">No autoencoder result is published; it did not earn a place over the"</span>)</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Isolation Forest on this data."</span>)</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"PyTorch not installed. Install the optional extra with: pip install -e '.[deep]'"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nasa_bearing_anomaly.detection <span class="im">import</span> TORCH_AVAILABLE</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> TORCH_AVAILABLE:</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Running Autoencoder on Test 3..."</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    ae_result <span class="op">=</span> run_pipeline(<span class="dv">3</span>, method<span class="op">=</span><span class="st">"autoencoder"</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compare the two detectors on the same diagnostic. Both land at 0 for the same</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># structural reason, which is the point: swapping the model does not fix a metric</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># that was never measuring detection. business.py is what fixes it, and it handles</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the autoencoder's inverted sign convention.</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    if_first <span class="op">=</span> (</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        results[<span class="dv">3</span>][results[<span class="dv">3</span>][<span class="st">"is_anomaly"</span>]].index.<span class="bu">min</span>() <span class="cf">if</span> results[<span class="dv">3</span>][<span class="st">"is_anomaly"</span>].<span class="bu">any</span>() <span class="cf">else</span> <span class="va">None</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    ae_first <span class="op">=</span> (</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        ae_result[ae_result[<span class="st">"is_anomaly"</span>]].index.<span class="bu">min</span>() <span class="cf">if</span> ae_result[<span class="st">"is_anomaly"</span>].<span class="bu">any</span>() <span class="cf">else</span> <span class="va">None</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Test 3, first flagged file (a diagnostic, not a lead time):"</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Isolation Forest: </span><span class="sc">{</span>if_first<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  Autoencoder:      </span><span class="sc">{</span>ae_first<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">No autoencoder result is published; it did not earn a place over the"</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Isolation Forest on this data."</span>)</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"PyTorch not installed. Install the optional extra with: pip install -e '.[deep]'"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running Autoencoder on Test 3...
+Feature source: enriched (test3_features.csv, 90 columns)
+Failed bearing: Bearing3 | Features selected: 20 (source: enriched)
+  Training Autoencoder (20 features → 8D bottleneck)...
+    Epoch [50/150] Loss: 0.229089
+    Epoch [100/150] Loss: 0.217722
+    Epoch [150/150] Loss: 0.210761
+  Threshold set at 95.0th percentile: 0.378258
+  Anomalies detected: 678/6324 (10.7%)
+Results saved: results/reports/test3_autoencoder_results.csv
+
+Test 3, first flagged file (a diagnostic, not a lead time):
+  Isolation Forest: 0
+  Autoencoder:      0
+
+No autoencoder result is published; it did not earn a place over the
+Isolation Forest on this data.</code></pre>
+</div>
 </div>
 <hr>
 </section>
