@@ -100,6 +100,22 @@ ruff format --check .
 step "pytest"
 pytest -q
 
+# ── 4b. The test count the README claims ───────────────────────────────────
+# Went stale three times in one phase: a test lands, the README is not touched,
+# and nothing notices because the count is prose rather than output. Checked
+# here rather than remembered.
+step "README test count"
+claimed=$(grep -oE '[0-9]+ tests' README.md | head -1 | grep -oE '^[0-9]+')
+actual=$(pytest --collect-only 2>/dev/null | grep -oE '[0-9]+ tests collected' | grep -oE '^[0-9]+')
+if [[ "$claimed" == "$actual" ]]; then
+    echo "   README says $claimed, suite collects $actual"
+else
+    echo
+    echo "ERROR: README claims $claimed tests, the suite collects $actual." >&2
+    echo "Update both mentions in README.md before publishing." >&2
+    exit 1
+fi
+
 # ── 5. Render ──────────────────────────────────────────────────────────────
 step "quarto render"
 quarto render

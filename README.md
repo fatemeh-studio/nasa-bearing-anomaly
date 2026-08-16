@@ -62,7 +62,7 @@ cd nasa-bearing-anomaly
 conda env create -f environment.yml   # or: python -m venv .venv && pip install -e ".[dev,notebook]"
 conda activate nasa-bearing-anomaly
 
-pytest                                # 124 tests
+pytest                                # 127 tests
 jupyter lab notebooks/                # run 01 → 04 in order
 
 # ...or headless, from the committed tables:
@@ -75,7 +75,7 @@ python -m nasa_bearing_anomaly.business --test all --feature-source enriched
 ```
 src/nasa_bearing_anomaly/  library code — physics, features, detection, business
 notebooks/                 narrative; outputs stripped, figures committed separately
-tests/                     124 tests; no __init__.py, so imports resolve as a cloner's do
+tests/                     127 tests; no __init__.py, so imports resolve as a cloner's do
 data/                      raw/ gitignored; processed/ committed. Facts in data/README.md
 figures/headline/          only the figure this README embeds
 results/                   generated figures and summary tables
