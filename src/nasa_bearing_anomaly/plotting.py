@@ -140,7 +140,9 @@ class BearingPlotter:
 
     # ── Plot 2: Anomaly Overlay ────────────────────────────────────────────
 
-    def plot_anomaly_overlay(self, df: pd.DataFrame, target_bearing: str = None) -> plt.Figure:
+    def plot_anomaly_overlay(
+        self, df: pd.DataFrame, target_bearing: str | None = None
+    ) -> plt.Figure:
         """
         Plot RMS of the target bearing with flagged files highlighted.
 
@@ -330,10 +332,35 @@ class BearingPlotter:
     # ── Plot 5: Score Distribution ─────────────────────────────────────────
 
     def plot_score_distribution(self, df: pd.DataFrame) -> plt.Figure:
-        """Histogram of anomaly scores: normal vs anomaly distribution."""
-        if "anomaly_score" not in df.columns:
-            print("  Warning: No anomaly_score column found.")
-            return None
+        """
+        Histogram of anomaly scores, normal against anomalous.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            A scored frame, carrying ``anomaly_score`` and ``is_anomaly``.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure, also saved under ``results/figures/``.
+
+        Raises
+        ------
+        ValueError
+            If the frame has not been scored.
+        """
+        # Raising rather than warning and returning None. The annotation said
+        # plt.Figure and the old guard returned None, on a path whose only caller
+        # discards the result -- so an unscored frame produced a missing figure
+        # and no other symptom. It also checked only anomaly_score while the body
+        # needs is_anomaly too, so the one case it did catch was the narrower one.
+        missing = [c for c in ("anomaly_score", "is_anomaly") if c not in df.columns]
+        if missing:
+            raise ValueError(
+                f"plot_score_distribution needs a scored frame; missing {missing}. "
+                "Run detection.run_pipeline first."
+            )
 
         fig, ax = plt.subplots(figsize=(10, 5))
 

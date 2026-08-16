@@ -481,7 +481,7 @@ if TORCH_AVAILABLE:
 # ─── Pipeline: Select Features & Run Detection ─────────────────────────────
 
 
-def select_features(df: pd.DataFrame, bearing_prefix: str = None) -> list:
+def select_features(df: pd.DataFrame, bearing_prefix: str | None = None) -> list:
     """
     Select the most informative feature columns.
 

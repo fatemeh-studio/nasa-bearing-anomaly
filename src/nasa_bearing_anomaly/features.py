@@ -1,7 +1,7 @@
 """
 Feature extraction for bearing health monitoring.
 
-Two independent halves, and only the second is wired into the detection pipeline.
+Two halves, joined by ``extract_spectral`` and compared by ``build_arm``.
 
 ``FeatureExtractor`` operates on a **raw 1-D waveform**:
 
@@ -23,10 +23,13 @@ harmonics, which lowers it. Pinned by ``test_spectral_entropy_faulty_lower_than_
 ``enrich_processed`` operates on the **summary table** ``loading.py`` writes, adding
 rolling and first-difference columns over the RMS and kurtosis channels.
 
-**Only ``enrich_processed`` reaches the model.** The detection pipeline reads the summary
-table and never a waveform, so nothing ``FeatureExtractor`` computes appears in the feature
-matrix. It is exercised by the test suite and demonstrated on synthetic signals in
-notebook 02. Joining the two costs one pass over the raw archive.
+``extract_spectral`` is the join between them: one pass over the raw archive, writing
+``FeatureExtractor``'s output to ``data/processed/test{N}_spectral.csv``, which is
+committed. ``build_arm`` then assembles the feature sets the ablation compares.
+
+**The published detector still scores time-domain features only.** Measured 2026-08-15:
+the defect-frequency features identify which surface failed in three of four documented
+cases, and change failure lead time by at most 1.5 h of 57. See ``methodology.qmd``.
 
 Usage:
     from nasa_bearing_anomaly.features import FeatureExtractor
@@ -456,7 +459,9 @@ class FeatureExtractor:
 SUMMARY_DUPLICATE_KEYS = ("rms", "std", "kurtosis", "peak", "skewness")
 
 
-def extract_spectral(test_id: int, max_files: int = None, verbose: bool = True) -> pd.DataFrame:
+def extract_spectral(
+    test_id: int, max_files: int | None = None, verbose: bool = True
+) -> pd.DataFrame:
     """
     Compute waveform features for every acquisition in one test run.
 

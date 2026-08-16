@@ -62,7 +62,7 @@ def load_single_file(filepath: Path) -> np.ndarray:
     return data
 
 
-def acquisition_files(test_id: int, max_files: int = None) -> tuple[list[Path], list[str]]:
+def acquisition_files(test_id: int, max_files: int | None = None) -> tuple[list[Path], list[str]]:
     """
     List a test's raw acquisition files and check the channel labelling agrees.
 
@@ -137,7 +137,7 @@ def acquisition_files(test_id: int, max_files: int = None) -> tuple[list[Path], 
     return files, columns
 
 
-def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.DataFrame:
+def load_test(test_id: int, max_files: int | None = None, verbose: bool = True) -> pd.DataFrame:
     """
     Load all files from a single test run and aggregate statistics per file.
 
@@ -226,7 +226,12 @@ def load_test(test_id: int, max_files: int = None, verbose: bool = True) -> pd.D
         print(f"Warning: {n_undated} of {len(records)} filenames did not parse as timestamps.")
 
     df = pd.DataFrame(records)
-    if "timestamp" in df.columns:
+    # Tested on the column actually being set. This read `"timestamp" in
+    # df.columns` while indexing on file_index -- harmless, because the two are
+    # written together or not at all, but it meant the guard was not checking the
+    # thing that would fail. The case it guards is every file having been skipped,
+    # which leaves an empty frame with no columns at all.
+    if "file_index" in df.columns:
         df = df.set_index("file_index")
 
     return df
