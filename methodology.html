@@ -292,7 +292,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>A second pass over the raw archive computes these per acquisition and writes them to <code>data/processed/test{N}_spectral.csv</code>, which is committed — so everything below reproduces from a clean clone without the 6.2 GB download.</p>
 <p><strong>Frequency domain</strong>, from a Welch power spectral density (PSD) estimate:</p>
 <ul>
-<li><strong>Defect-frequency band energy</strong> — power in bands around BPFO, BPFI and BSF and their first three harmonics.</li>
+<li><strong>Defect-frequency band energy</strong> — power in bands around BPFO, BPFI and BSF, summed over 1×, 2× and 3× each frequency.</li>
 <li><strong>Spectral entropy</strong> — how evenly energy is spread across the spectrum.</li>
 <li><strong>High-frequency ratio</strong> — proportion of energy above 5 kHz.</li>
 </ul>
@@ -347,7 +347,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>The failed bearing is also the loudest bearing on its shaft each time — 354× against 8.8× for a healthy bearing in Test 3. So this is specificity, not merely sensitivity: it says <em>which</em> surface on <em>which</em> bearing, which overall vibration amplitude cannot.</p>
-<p>Three of four is the honest count. Bearing 4’s roller-element defect in Test 1 is read as outer race. Rolling-element and cage faults are the known-hard cases, and a roller defect often shows at twice BSF rather than at BSF; this analysis looks only at the first three harmonics of BSF itself.</p>
+<p>Three of four is the honest count. Bearing 4’s roller-element defect in Test 1 is read as outer race; rolling-element and cage faults are the known-hard cases. Why this one is missed is not yet established. It is not an unchecked harmonic: every defect band sums the first, second and third harmonics of its frequency, so 2×BSF is already inside the BSF figure above.</p>
 <p>This is a descriptive contrast between two windows, not a validated classifier. It uses one hand-chosen healthy window and no held-out validation.</p>
 </section>
 <section id="they-do-not-improve-lead-time" class="level2">
@@ -1012,8 +1012,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>**Frequency domain**, from a Welch power spectral density (PSD) estimate:</span>
 <span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Defect-frequency band energy** — power in bands around BPFO, BPFI and BSF and their</span>
-<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>  first three harmonics.</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Defect-frequency band energy** — power in bands around BPFO, BPFI and BSF, summed</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>  over 1×, 2× and 3× each frequency.</span>
 <span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Spectral entropy** — how evenly energy is spread across the spectrum.</span>
 <span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**High-frequency ratio** — proportion of energy above 5 kHz.</span>
 <span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
@@ -1056,169 +1056,170 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>*which* surface on *which* bearing, which overall vibration amplitude cannot.</span>
 <span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>Three of four is the honest count. Bearing 4's roller-element defect in Test 1 is read as</span>
-<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>outer race. Rolling-element and cage faults are the known-hard cases, and a roller defect</span>
-<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>often shows at twice BSF rather than at BSF; this analysis looks only at the first three</span>
-<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>harmonics of BSF itself.</span>
-<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>This is a descriptive contrast between two windows, not a validated classifier. It uses</span>
-<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>one hand-chosen healthy window and no held-out validation.</span>
-<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a><span class="fu">## They do not improve lead time</span></span>
-<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>Five feature sets, scored with the selection procedure held identical throughout — same</span>
-<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>contamination, same target false-alarm rate, the same fixed (k, m) candidate list and</span>
-<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>first-that-passes rule, the same three-way healthy-window split, the same seed. Only the</span>
-<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>scored columns differ.</span>
-<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Feature set <span class="pp">|</span> Test 1 <span class="pp">|</span> Test 2 <span class="pp">|</span> Test 3 <span class="pp">|</span></span>
-<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
-<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **published** — time domain, 20 columns | **79.5 h** | **53.7 h** | **57.0 h** <span class="pp">|</span></span>
-<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> the same, log-scaled <span class="pp">|</span> 79.5 h <span class="pp">|</span> 53.8 h <span class="pp">|</span> 55.0 h <span class="pp">|</span></span>
-<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> + PSD bands, entropy, high-frequency ratio <span class="pp">|</span> 79.5 h <span class="pp">|</span> 54.3 h <span class="pp">|</span> 50.7 h <span class="pp">|</span></span>
-<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> + those, with rolling and difference columns <span class="pp">|</span> 10.5 h <span class="pp">|</span> 46.7 h <span class="pp">|</span> 57.8 h <span class="pp">|</span></span>
-<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> + envelope bands <span class="pp">|</span> 79.7 h <span class="pp">|</span> 53.7 h <span class="pp">|</span> **58.5 h** <span class="pp">|</span></span>
-<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>Zero held-out false alarms in every one of the fifteen runs, in 323 / 147 / 949 files.</span>
-<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>**The best spectral arm buys 0.2 h, 0.0 h and 1.5 h.** Acquisitions are ten minutes apart,</span>
-<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>so Test 1's "gain" is one file.</span>
-<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>**The reason is visible in where the alarm fires.** On Test 1 four of the five arms fire at</span>
-<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>file 1829 or 1830 out of 2,156 — despite genuinely different models, with thresholds of</span>
-<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>−0.153, −0.139, −0.178 and −0.136, and one arm selecting a 4-of-5 rule where the others</span>
-<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>take 3-of-5. Different features, different detectors, the same moment. By the time</span>
-<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>degradation crosses a threshold calibrated against healthy data, every feature has already</span>
-<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a>moved together; what is scored barely matters.</span>
-<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a>**More features made it worse, not better.** The arm with rolling and difference columns on</span>
-<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>the spectral block carries 368 columns and is the worst on Test 1 by 303 files while being</span>
-<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>second-best on Test 3. A feature set that swings that far between runs of the same rig is</span>
-<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>not one that helps unevenly; it is one whose behaviour is not predictable from the others.</span>
-<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>**The log-scaled arm is why any of this is attributable.** Spectral band energies span three</span>
-<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>orders of magnitude and are strongly log-normal, so they have to be log-scaled to be usable</span>
-<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>at all. Without an arm that applies the same transform to the time-domain features and</span>
-<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>nothing else, the envelope arm's 1.5 h on Test 3 could have been credited to the physics —</span>
-<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>when the change of scale alone accounts for −2.0 h on the same run.</span>
-<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a><span class="fu">## Three feature directions that are the opposite of the intuition</span></span>
-<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>Each is a trap that produces a confidently wrong reading, so they are worth stating</span>
-<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>plainly, together with how firmly each is established.</span>
-<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Spectral entropy is *higher* in healthy bearings, not lower.** The intuition says a</span>
-<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>  fault means disorder means high entropy. The opposite holds: healthy bearing noise is</span>
-<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  broadband and close to flat, which is maximum entropy. A developing defect *concentrates*</span>
-<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  energy into BPFO harmonics — structure, not noise — and structure lowers entropy. Pinned</span>
-<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  by a test (<span class="in">`test_spectral_entropy_faulty_lower_than_healthy`</span>) on synthetic signals, and</span>
-<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  it holds on all three runs in real data — 0.916 → 0.911, 0.850 → 0.774 and 0.911 → 0.860</span>
-<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  from a healthy window to the end. The direction is consistent; the magnitude is not, and</span>
-<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  on Test 1 it is barely a movement at all.</span>
-<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`high_freq_ratio` is documented to run the other way too**, on the reasoning that</span>
-<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>  healthy Gaussian noise is already rich in high frequencies so a fault has little headroom</span>
-<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a>  to add any. **Measured, it does not hold universally.** It falls on the two outer-race</span>
-<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a>  runs — 0.128 → 0.122 and 0.318 → 0.232 — and *rises* on Test 1, 0.504 → 0.507. Test 1 is</span>
-<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a>  the inner-race failure, and an inner-race defect is amplitude-modulated by shaft rotation,</span>
-<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a>  which spreads energy into sidebands rather than concentrating it; that would explain the</span>
-<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a>  difference, but this project has not tested that explanation and it should be read as a</span>
-<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>  hypothesis. Only the <span class="in">`[0, 1]`</span> range is asserted by a test. **Do not rely on this feature's</span>
-<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a>  direction.**</span>
-<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`crest_factor` becomes unreliable at high fault severity.** It rises early, as discrete</span>
-<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a>  impacts appear against a quiet floor, then falls back once the defect is severe enough</span>
-<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a>  that impacts merge into a noise floor the fault itself has lifted. Read monotonically, it</span>
-<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a>  will eventually suggest the bearing is recovering. Only <span class="in">`crest_factor &gt;= 1`</span> is asserted by</span>
-<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a>  a test; the non-monotonicity is a documented caution here, and this dataset's runs end</span>
-<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>  before it appears — crest factor is still rising at failure.</span>
-<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a><span class="fu">## The detector</span></span>
-<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a><span class="in">`StandardScaler`</span> → <span class="in">`PCA`</span> (10 components) → <span class="in">`IsolationForest`</span>, fitted on the **first 60%**</span>
-<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a>of each series on the assumption that a run-to-failure rig starts healthy, then scoring</span>
-<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a>the whole series. Isolation Forest suits the problem because it needs no labels and</span>
-<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a>isolates outliers by random partitioning, which is cheap and explainable.</span>
-<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a>An autoencoder path exists (PyTorch, optional install) and is handled correctly by the</span>
-<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a>metric layer, including its inverted sign convention. No autoencoder result is</span>
-<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a>published: it did not earn a place over the Isolation Forest on this data.</span>
-<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a><span class="fu">## Turning scores into an alert, without cheating</span></span>
-<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a>This is the part that took the work. Three problems have to be solved in order, and</span>
-<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a>each one is a precondition for the next.</span>
-<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1. `is_anomaly` cannot be used at all</span></span>
-<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a><span class="in">`contamination=c`</span> guarantees that fraction of the **training** window is labelled</span>
-<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a>anomalous, and the training window is the part assumed healthy. Measured: 5.03%, 5.08%</span>
-<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a>and 8.01% of training files flagged, against configured 0.05, 0.05 and 0.08. So the</span>
-<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a>label is doing what it was asked to do, and the first flagged file lands at or near</span>
-<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a>file 0 on every run. The lead time is therefore read from a **score threshold**, never</span>
-<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a>from <span class="in">`is_anomaly`</span>.</span>
-<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2. A single flagged window is not an alert</span></span>
-<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a>Runs of consecutive flags occur by chance at those rates — a 10-of-10 rule still fires</span>
-<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a>at file 9 of Tests 2 and 3. The rule is **k of the last m** files flagged.</span>
-<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3. Choosing k and m is where a result gets fabricated</span></span>
-<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a>Picking the (k, m) that yields the nicest lead time is precisely the failure the</span>
-<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a>sustained rule exists to prevent, and it would be invisible in the output. Two things</span>
-<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a>prevent it here:</span>
-<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a>**The candidate list is fixed in advance**, ordered by window length then strictness —</span>
-<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a>3-of-5, 4-of-5, 5-of-5, 6-of-10, … 30-of-30 — and **the first entry that does not fire</span>
-<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a>on healthy data wins**. That is the *most sensitive* rule meeting the constraint, not</span>
-<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a>the best-scoring one. Lead time is never consulted during selection.</span>
-<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a>**The healthy region is split into three disjoint windows**, so no window both sets a</span>
-<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a>parameter and scores it:</span>
-<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Window <span class="pp">|</span> Slice of the live series <span class="pp">|</span> Job <span class="pp">|</span></span>
-<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Calibration <span class="pp">|</span> first 10% <span class="pp">|</span> sets the score threshold, at a 1% per-file false-alarm rate <span class="pp">|</span></span>
-<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Selection <span class="pp">|</span> 10% – 25% <span class="pp">|</span> chooses k and m <span class="pp">|</span></span>
-<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Held out <span class="pp">|</span> 25% – 40% <span class="pp">|</span> reports the false-alarm rate — **never touched before this** <span class="pp">|</span></span>
-<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a>The reported "0 false alarms in 323 / 147 / 949 files" comes from the third window</span>
-<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a>only, which is what makes it out-of-sample.</span>
-<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a>The 40% boundary is itself an assumption — a run that degraded early would push the</span>
-<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a>"healthy" window into the failure and report a real detection as a false positive — so</span>
-<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a>it is **checked rather than assumed**: <span class="in">`check_healthy_region`</span> verifies RMS stays below</span>
-<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a>2× baseline throughout. All three runs pass.</span>
-<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4. The post-shutdown tail</span></span>
-<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a>Each rig auto-terminates on a debris-triggered switch, and the acquisitions after that</span>
-<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a>read near-zero RMS on every channel. They are not healthy readings, and they must not</span>
-<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a>anchor a lead time. The tail is **measured per run, not assumed** — 0 files for Test 1,</span>
-<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a>2 for Test 2, 1 for Test 3 — by requiring *every* bearing to fall below 0.2× baseline,</span>
-<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a>because one bearing can go quiet through damage but all four go quiet only when the</span>
-<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a>shaft stops. Test 1 never went quiet at all and ends on its RMS peak, so the usual</span>
-<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a>"drop the last file" would have discarded the very failure being measured. Details in</span>
-<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">the data documentation</span><span class="co">](data.qmd)</span>.</span>
-<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a><span class="fu">## What this does not establish</span></span>
-<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-259"><a href="#cb1-259" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The ablation is one dataset and three runs.** That the defect-frequency features add</span>
-<span id="cb1-260"><a href="#cb1-260" aria-hidden="true" tabindex="-1"></a>  nothing here is not a claim that they add nothing. This rig is heavily loaded and runs to</span>
-<span id="cb1-261"><a href="#cb1-261" aria-hidden="true" tabindex="-1"></a>  destruction, so degradation is large and monotone by the time it is detectable at all —</span>
-<span id="cb1-262"><a href="#cb1-262" aria-hidden="true" tabindex="-1"></a>  the regime that most favours a plain amplitude feature. A lightly loaded machine, or one</span>
-<span id="cb1-263"><a href="#cb1-263" aria-hidden="true" tabindex="-1"></a>  where the question is *which* surface is failing rather than *whether* one is, is exactly</span>
-<span id="cb1-264"><a href="#cb1-264" aria-hidden="true" tabindex="-1"></a>  where the band features would be expected to pay.</span>
-<span id="cb1-265"><a href="#cb1-265" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**A negative ablation is not a licence to delete the features.** They answer a different</span>
-<span id="cb1-266"><a href="#cb1-266" aria-hidden="true" tabindex="-1"></a>  question, and they answer it correctly: three of four documented failure modes, named</span>
-<span id="cb1-267"><a href="#cb1-267" aria-hidden="true" tabindex="-1"></a>  from vibration alone.</span>
-<span id="cb1-268"><a href="#cb1-268" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Three runs is three samples.** The alert rule is selected per run against that</span>
-<span id="cb1-269"><a href="#cb1-269" aria-hidden="true" tabindex="-1"></a>  run's own healthy data. That is correct procedure, and it is not the same as</span>
-<span id="cb1-270"><a href="#cb1-270" aria-hidden="true" tabindex="-1"></a>  validating a fixed rule on an unseen rig.</span>
-<span id="cb1-271"><a href="#cb1-271" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Zero false alarms is an upper bound.** 147 to 949 held-out files cannot resolve a</span>
-<span id="cb1-272"><a href="#cb1-272" aria-hidden="true" tabindex="-1"></a>  rate below roughly 1 in 1,000.</span>
-<span id="cb1-273"><a href="#cb1-273" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Lead time is anchored on the end of the run.** The rigs ran to destruction, so the</span>
-<span id="cb1-274"><a href="#cb1-274" aria-hidden="true" tabindex="-1"></a>  last live acquisition is taken as the failure — but no independent ground-truth</span>
-<span id="cb1-275"><a href="#cb1-275" aria-hidden="true" tabindex="-1"></a>  failure timestamp exists to check that against, and it ties the number to when the</span>
-<span id="cb1-276"><a href="#cb1-276" aria-hidden="true" tabindex="-1"></a>  rig happened to stop.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>outer race; rolling-element and cage faults are the known-hard cases. Why this one is</span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>missed is not yet established. It is not an unchecked harmonic: every defect band sums the</span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>first, second and third harmonics of its frequency, so 2×BSF is already inside the BSF</span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>figure above.</span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>This is a descriptive contrast between two windows, not a validated classifier. It uses</span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a>one hand-chosen healthy window and no held-out validation.</span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a><span class="fu">## They do not improve lead time</span></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>Five feature sets, scored with the selection procedure held identical throughout — same</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>contamination, same target false-alarm rate, the same fixed (k, m) candidate list and</span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>first-that-passes rule, the same three-way healthy-window split, the same seed. Only the</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>scored columns differ.</span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Feature set <span class="pp">|</span> Test 1 <span class="pp">|</span> Test 2 <span class="pp">|</span> Test 3 <span class="pp">|</span></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **published** — time domain, 20 columns | **79.5 h** | **53.7 h** | **57.0 h** <span class="pp">|</span></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> the same, log-scaled <span class="pp">|</span> 79.5 h <span class="pp">|</span> 53.8 h <span class="pp">|</span> 55.0 h <span class="pp">|</span></span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> + PSD bands, entropy, high-frequency ratio <span class="pp">|</span> 79.5 h <span class="pp">|</span> 54.3 h <span class="pp">|</span> 50.7 h <span class="pp">|</span></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> + those, with rolling and difference columns <span class="pp">|</span> 10.5 h <span class="pp">|</span> 46.7 h <span class="pp">|</span> 57.8 h <span class="pp">|</span></span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> + envelope bands <span class="pp">|</span> 79.7 h <span class="pp">|</span> 53.7 h <span class="pp">|</span> **58.5 h** <span class="pp">|</span></span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a>Zero held-out false alarms in every one of the fifteen runs, in 323 / 147 / 949 files.</span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>**The best spectral arm buys 0.2 h, 0.0 h and 1.5 h.** Acquisitions are ten minutes apart,</span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>so Test 1's "gain" is one file.</span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>**The reason is visible in where the alarm fires.** On Test 1 four of the five arms fire at</span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>file 1829 or 1830 out of 2,156 — despite genuinely different models, with thresholds of</span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>−0.153, −0.139, −0.178 and −0.136, and one arm selecting a 4-of-5 rule where the others</span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>take 3-of-5. Different features, different detectors, the same moment. By the time</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a>degradation crosses a threshold calibrated against healthy data, every feature has already</span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>moved together; what is scored barely matters.</span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>**More features made it worse, not better.** The arm with rolling and difference columns on</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>the spectral block carries 368 columns and is the worst on Test 1 by 303 files while being</span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>second-best on Test 3. A feature set that swings that far between runs of the same rig is</span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a>not one that helps unevenly; it is one whose behaviour is not predictable from the others.</span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>**The log-scaled arm is why any of this is attributable.** Spectral band energies span three</span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>orders of magnitude and are strongly log-normal, so they have to be log-scaled to be usable</span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>at all. Without an arm that applies the same transform to the time-domain features and</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>nothing else, the envelope arm's 1.5 h on Test 3 could have been credited to the physics —</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>when the change of scale alone accounts for −2.0 h on the same run.</span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a><span class="fu">## Three feature directions that are the opposite of the intuition</span></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>Each is a trap that produces a confidently wrong reading, so they are worth stating</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>plainly, together with how firmly each is established.</span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Spectral entropy is *higher* in healthy bearings, not lower.** The intuition says a</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  fault means disorder means high entropy. The opposite holds: healthy bearing noise is</span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  broadband and close to flat, which is maximum entropy. A developing defect *concentrates*</span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  energy into BPFO harmonics — structure, not noise — and structure lowers entropy. Pinned</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  by a test (<span class="in">`test_spectral_entropy_faulty_lower_than_healthy`</span>) on synthetic signals, and</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  it holds on all three runs in real data — 0.916 → 0.911, 0.850 → 0.774 and 0.911 → 0.860</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  from a healthy window to the end. The direction is consistent; the magnitude is not, and</span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a>  on Test 1 it is barely a movement at all.</span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`high_freq_ratio` is documented to run the other way too**, on the reasoning that</span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a>  healthy Gaussian noise is already rich in high frequencies so a fault has little headroom</span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a>  to add any. **Measured, it does not hold universally.** It falls on the two outer-race</span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a>  runs — 0.128 → 0.122 and 0.318 → 0.232 — and *rises* on Test 1, 0.504 → 0.507. Test 1 is</span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a>  the inner-race failure, and an inner-race defect is amplitude-modulated by shaft rotation,</span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a>  which spreads energy into sidebands rather than concentrating it; that would explain the</span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>  difference, but this project has not tested that explanation and it should be read as a</span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a>  hypothesis. Only the <span class="in">`[0, 1]`</span> range is asserted by a test. **Do not rely on this feature's</span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a>  direction.**</span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**`crest_factor` becomes unreliable at high fault severity.** It rises early, as discrete</span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a>  impacts appear against a quiet floor, then falls back once the defect is severe enough</span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a>  that impacts merge into a noise floor the fault itself has lifted. Read monotonically, it</span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a>  will eventually suggest the bearing is recovering. Only <span class="in">`crest_factor &gt;= 1`</span> is asserted by</span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>  a test; the non-monotonicity is a documented caution here, and this dataset's runs end</span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a>  before it appears — crest factor is still rising at failure.</span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a><span class="fu">## The detector</span></span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a><span class="in">`StandardScaler`</span> → <span class="in">`PCA`</span> (10 components) → <span class="in">`IsolationForest`</span>, fitted on the **first 60%**</span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a>of each series on the assumption that a run-to-failure rig starts healthy, then scoring</span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a>the whole series. Isolation Forest suits the problem because it needs no labels and</span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a>isolates outliers by random partitioning, which is cheap and explainable.</span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a>An autoencoder path exists (PyTorch, optional install) and is handled correctly by the</span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a>metric layer, including its inverted sign convention. No autoencoder result is</span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a>published: it did not earn a place over the Isolation Forest on this data.</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a><span class="fu">## Turning scores into an alert, without cheating</span></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a>This is the part that took the work. Three problems have to be solved in order, and</span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a>each one is a precondition for the next.</span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1. `is_anomaly` cannot be used at all</span></span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a><span class="in">`contamination=c`</span> guarantees that fraction of the **training** window is labelled</span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a>anomalous, and the training window is the part assumed healthy. Measured: 5.03%, 5.08%</span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a>and 8.01% of training files flagged, against configured 0.05, 0.05 and 0.08. So the</span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a>label is doing what it was asked to do, and the first flagged file lands at or near</span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a>file 0 on every run. The lead time is therefore read from a **score threshold**, never</span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a>from <span class="in">`is_anomaly`</span>.</span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2. A single flagged window is not an alert</span></span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a>Runs of consecutive flags occur by chance at those rates — a 10-of-10 rule still fires</span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a>at file 9 of Tests 2 and 3. The rule is **k of the last m** files flagged.</span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3. Choosing k and m is where a result gets fabricated</span></span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a>Picking the (k, m) that yields the nicest lead time is precisely the failure the</span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a>sustained rule exists to prevent, and it would be invisible in the output. Two things</span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a>prevent it here:</span>
+<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a>**The candidate list is fixed in advance**, ordered by window length then strictness —</span>
+<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a>3-of-5, 4-of-5, 5-of-5, 6-of-10, … 30-of-30 — and **the first entry that does not fire</span>
+<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a>on healthy data wins**. That is the *most sensitive* rule meeting the constraint, not</span>
+<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a>the best-scoring one. Lead time is never consulted during selection.</span>
+<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a>**The healthy region is split into three disjoint windows**, so no window both sets a</span>
+<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a>parameter and scores it:</span>
+<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Window <span class="pp">|</span> Slice of the live series <span class="pp">|</span> Job <span class="pp">|</span></span>
+<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Calibration <span class="pp">|</span> first 10% <span class="pp">|</span> sets the score threshold, at a 1% per-file false-alarm rate <span class="pp">|</span></span>
+<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Selection <span class="pp">|</span> 10% – 25% <span class="pp">|</span> chooses k and m <span class="pp">|</span></span>
+<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Held out <span class="pp">|</span> 25% – 40% <span class="pp">|</span> reports the false-alarm rate — **never touched before this** <span class="pp">|</span></span>
+<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a>The reported "0 false alarms in 323 / 147 / 949 files" comes from the third window</span>
+<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a>only, which is what makes it out-of-sample.</span>
+<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a>The 40% boundary is itself an assumption — a run that degraded early would push the</span>
+<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a>"healthy" window into the failure and report a real detection as a false positive — so</span>
+<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a>it is **checked rather than assumed**: <span class="in">`check_healthy_region`</span> verifies RMS stays below</span>
+<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a>2× baseline throughout. All three runs pass.</span>
+<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4. The post-shutdown tail</span></span>
+<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a>Each rig auto-terminates on a debris-triggered switch, and the acquisitions after that</span>
+<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a>read near-zero RMS on every channel. They are not healthy readings, and they must not</span>
+<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a>anchor a lead time. The tail is **measured per run, not assumed** — 0 files for Test 1,</span>
+<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a>2 for Test 2, 1 for Test 3 — by requiring *every* bearing to fall below 0.2× baseline,</span>
+<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a>because one bearing can go quiet through damage but all four go quiet only when the</span>
+<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a>shaft stops. Test 1 never went quiet at all and ends on its RMS peak, so the usual</span>
+<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a>"drop the last file" would have discarded the very failure being measured. Details in</span>
+<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">the data documentation</span><span class="co">](data.qmd)</span>.</span>
+<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a><span class="fu">## What this does not establish</span></span>
+<span id="cb1-259"><a href="#cb1-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-260"><a href="#cb1-260" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The ablation is one dataset and three runs.** That the defect-frequency features add</span>
+<span id="cb1-261"><a href="#cb1-261" aria-hidden="true" tabindex="-1"></a>  nothing here is not a claim that they add nothing. This rig is heavily loaded and runs to</span>
+<span id="cb1-262"><a href="#cb1-262" aria-hidden="true" tabindex="-1"></a>  destruction, so degradation is large and monotone by the time it is detectable at all —</span>
+<span id="cb1-263"><a href="#cb1-263" aria-hidden="true" tabindex="-1"></a>  the regime that most favours a plain amplitude feature. A lightly loaded machine, or one</span>
+<span id="cb1-264"><a href="#cb1-264" aria-hidden="true" tabindex="-1"></a>  where the question is *which* surface is failing rather than *whether* one is, is exactly</span>
+<span id="cb1-265"><a href="#cb1-265" aria-hidden="true" tabindex="-1"></a>  where the band features would be expected to pay.</span>
+<span id="cb1-266"><a href="#cb1-266" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**A negative ablation is not a licence to delete the features.** They answer a different</span>
+<span id="cb1-267"><a href="#cb1-267" aria-hidden="true" tabindex="-1"></a>  question, and they answer it correctly: three of four documented failure modes, named</span>
+<span id="cb1-268"><a href="#cb1-268" aria-hidden="true" tabindex="-1"></a>  from vibration alone.</span>
+<span id="cb1-269"><a href="#cb1-269" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Three runs is three samples.** The alert rule is selected per run against that</span>
+<span id="cb1-270"><a href="#cb1-270" aria-hidden="true" tabindex="-1"></a>  run's own healthy data. That is correct procedure, and it is not the same as</span>
+<span id="cb1-271"><a href="#cb1-271" aria-hidden="true" tabindex="-1"></a>  validating a fixed rule on an unseen rig.</span>
+<span id="cb1-272"><a href="#cb1-272" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Zero false alarms is an upper bound.** 147 to 949 held-out files cannot resolve a</span>
+<span id="cb1-273"><a href="#cb1-273" aria-hidden="true" tabindex="-1"></a>  rate below roughly 1 in 1,000.</span>
+<span id="cb1-274"><a href="#cb1-274" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Lead time is anchored on the end of the run.** The rigs ran to destruction, so the</span>
+<span id="cb1-275"><a href="#cb1-275" aria-hidden="true" tabindex="-1"></a>  last live acquisition is taken as the failure — but no independent ground-truth</span>
+<span id="cb1-276"><a href="#cb1-276" aria-hidden="true" tabindex="-1"></a>  failure timestamp exists to check that against, and it ties the number to when the</span>
+<span id="cb1-277"><a href="#cb1-277" aria-hidden="true" tabindex="-1"></a>  rig happened to stop.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
