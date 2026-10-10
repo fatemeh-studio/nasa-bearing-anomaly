@@ -67,8 +67,8 @@ reproduces from a clean clone without the 6.2 GB download.
 
 **Frequency domain**, from a Welch power spectral density (PSD) estimate:
 
-- **Defect-frequency band energy** — power in bands around BPFO, BPFI and BSF and their
-  first three harmonics.
+- **Defect-frequency band energy** — power in bands around BPFO, BPFI and BSF, summed
+  over 1×, 2× and 3× each frequency.
 - **Spectral entropy** — how evenly energy is spread across the spectrum.
 - **High-frequency ratio** — proportion of energy above 5 kHz.
 
@@ -111,9 +111,10 @@ for a healthy bearing in Test 3. So this is specificity, not merely sensitivity:
 *which* surface on *which* bearing, which overall vibration amplitude cannot.
 
 Three of four is the honest count. Bearing 4's roller-element defect in Test 1 is read as
-outer race. Rolling-element and cage faults are the known-hard cases, and a roller defect
-often shows at twice BSF rather than at BSF; this analysis looks only at the first three
-harmonics of BSF itself.
+outer race; rolling-element and cage faults are the known-hard cases. Why this one is
+missed is not yet established. It is not an unchecked harmonic: every defect band sums the
+first, second and third harmonics of its frequency, so 2×BSF is already inside the BSF
+figure above.
 
 This is a descriptive contrast between two windows, not a validated classifier. It uses
 one hand-chosen healthy window and no held-out validation.
